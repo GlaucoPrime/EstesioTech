@@ -100,7 +100,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 
     private fun saveResultsToCloud() {
         if (resultsMap.isEmpty()) {
-            Toast.makeText(this, "Teste pelo menos 1 ponto antes de salvar.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Teste pelo menos 1 ponto.", Toast.LENGTH_SHORT).show()
             return
         }
         isSaving.value = true
@@ -109,12 +109,12 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
             results = resultsMap.toMap(),
             onSuccess = {
                 isSaving.value = false
-                Toast.makeText(this, "Sucesso! Salvo na nuvem.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Salvo com sucesso!", Toast.LENGTH_SHORT).show()
                 finish()
             },
             onError = { erro ->
                 isSaving.value = false
-                Toast.makeText(this, "Erro ao salvar: $erro", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Erro: $erro", Toast.LENGTH_LONG).show()
             }
         )
     }
@@ -128,7 +128,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
                 runOnUiThread {
                     resultsMap[currentIndex] = finalValue
                     activePointIndex.intValue = -1
-                    Toast.makeText(this, "Ponto registrado!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Registrado!", Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
@@ -166,6 +166,7 @@ fun TesteScreen(
     onSaveToCloud: () -> Unit
 ) {
     val isHand = bodyPart.contains("mao")
+
     val title = when(bodyPart) {
         "mao_direita" -> "Mão Direita"
         "mao_esquerda" -> "Mão Esquerda"
@@ -180,6 +181,9 @@ fun TesteScreen(
         "pe_esquerdo" -> R.drawable.left_foot
         else -> R.drawable.right_hand
     }
+
+    // Proporção Ajustada (Mantida a do seu teste manual)
+    val containerRatio = if (isHand) 0.8f else 0.65f
 
     Scaffold(
         topBar = {
@@ -227,18 +231,19 @@ fun TesteScreen(
                 .padding(paddingValues)
                 .background(Brush.verticalGradient(colors = listOf(Color(0xFF101820), Color(0xFF000000))))
         ) {
+
             BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(8.dp),
-                contentAlignment = Alignment.TopCenter
+                contentAlignment = Alignment.Center
             ) {
-                // Caixa travada com a proporção exata das suas imagens
+                // Caixa com proporção travada
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(0.8f)
+                        .fillMaxWidth(0.95f)
+                        .aspectRatio(containerRatio)
                 ) {
                     Image(
                         painter = painterResource(id = imageRes),
@@ -251,58 +256,55 @@ fun TesteScreen(
                         val w = maxWidth
                         val h = maxHeight
 
-                        // --- COORDENADAS RECALIBRADAS (Focadas nos círculos brancos) ---
                         if (isHand) {
+                            // --- MÃOS (SEUS AJUSTES MANUAIS) ---
                             if(bodyPart == "mao_direita") {
-                                // Mão Direita (Polegar na Direita)
-                                MedicalPoint(0, 0.93f, 0.50f, results[0], w, h, onPointSelect) // Polegar (Ponta)
-                                MedicalPoint(1, 0.73f, 0.28f, results[1], w, h, onPointSelect) // Indicador
-                                MedicalPoint(2, 0.50f, 0.18f, results[2], w, h, onPointSelect) // Médio
-                                MedicalPoint(3, 0.27f, 0.28f, results[3], w, h, onPointSelect) // Anelar
-                                MedicalPoint(4, 0.07f, 0.45f, results[4], w, h, onPointSelect) // Mínimo
-                                MedicalPoint(5, 0.20f, 0.62f, results[5], w, h, onPointSelect) // Palma (Hypo)
-                                MedicalPoint(6, 0.80f, 0.65f, results[6], w, h, onPointSelect) // Palma (Thenar)
-                                MedicalPoint(7, 0.50f, 0.88f, results[7], w, h, onPointSelect) // Pulso
+                                // Mão Direita (Valores calibrados por você)
+                                MedicalPoint(0, 0.08f, 0.35f, results[0], w, h, onPointSelect) // Ponta Mindinho
+                                MedicalPoint(1, 0.58f, 0.26f, results[1], w, h, onPointSelect) // Ponta Indicador
+                                MedicalPoint(2, 0.57f, 0.42f, results[2], w, h, onPointSelect) // Base Indicador
+                                MedicalPoint(3, 0.16f, 0.47f, results[3], w, h, onPointSelect) // Base Mindinho
+                                MedicalPoint(4, 0.86f, 0.51f, results[4], w, h, onPointSelect) // Dedão
+                                MedicalPoint(5, 0.22f, 0.61f, results[5], w, h, onPointSelect) // Canto Inf. Direito
                             } else {
-                                // Mão Esquerda (Polegar na Esquerda)
-                                MedicalPoint(0, 0.07f, 0.50f, results[0], w, h, onPointSelect) // Polegar
-                                MedicalPoint(1, 0.27f, 0.28f, results[1], w, h, onPointSelect) // Indicador
-                                MedicalPoint(2, 0.50f, 0.18f, results[2], w, h, onPointSelect) // Médio
-                                MedicalPoint(3, 0.73f, 0.28f, results[3], w, h, onPointSelect) // Anelar
-                                MedicalPoint(4, 0.93f, 0.45f, results[4], w, h, onPointSelect) // Mínimo
-                                MedicalPoint(5, 0.80f, 0.62f, results[5], w, h, onPointSelect) // Palma (Hypo)
-                                MedicalPoint(6, 0.20f, 0.65f, results[6], w, h, onPointSelect) // Palma (Thenar)
-                                MedicalPoint(7, 0.50f, 0.88f, results[7], w, h, onPointSelect) // Pulso
+                                // Mão Esquerda (Espelho: 1.0 - X)
+                                MedicalPoint(0, 0.92f, 0.35f, results[0], w, h, onPointSelect)
+                                MedicalPoint(1, 0.42f, 0.26f, results[1], w, h, onPointSelect)
+                                MedicalPoint(2, 0.43f, 0.42f, results[2], w, h, onPointSelect)
+                                MedicalPoint(3, 0.84f, 0.47f, results[3], w, h, onPointSelect)
+                                MedicalPoint(4, 0.14f, 0.51f, results[4], w, h, onPointSelect)
+                                MedicalPoint(5, 0.78f, 0.61f, results[5], w, h, onPointSelect)
                             }
                         } else {
+                            // --- PÉS (SEUS AJUSTES MANUAIS) ---
                             if (bodyPart == "pe_direito") {
-                                // Pé Direito (Dedão na Esquerda)
-                                MedicalPoint(0, 0.32f, 0.08f, results[0], w, h, onPointSelect) // Dedão
-                                MedicalPoint(1, 0.55f, 0.10f, results[1], w, h, onPointSelect) // Dedo 2
-                                MedicalPoint(2, 0.85f, 0.20f, results[2], w, h, onPointSelect) // Dedo 5
+                                // Pé Direito (Valores calibrados por você)
+                                MedicalPoint(0, 0.37f, 0.26f, results[0], w, h, onPointSelect)
+                                MedicalPoint(1, 0.26f, 0.48f, results[1], w, h, onPointSelect)
+                                MedicalPoint(2, 0.69f, 0.21f, results[2], w, h, onPointSelect)
 
-                                MedicalPoint(3, 0.25f, 0.30f, results[3], w, h, onPointSelect) // Meta 1
-                                MedicalPoint(4, 0.55f, 0.32f, results[4], w, h, onPointSelect) // Meta 3
-                                MedicalPoint(5, 0.85f, 0.38f, results[5], w, h, onPointSelect) // Meta 5
+                                MedicalPoint(3, 0.13f, 0.34f, results[3], w, h, onPointSelect)
+                                MedicalPoint(4, 0.45f, 0.35f, results[4], w, h, onPointSelect)
+                                MedicalPoint(5, 0.77f, 0.37f, results[5], w, h, onPointSelect)
 
-                                MedicalPoint(6, 0.30f, 0.60f, results[6], w, h, onPointSelect) // Arco
-                                MedicalPoint(7, 0.75f, 0.58f, results[7], w, h, onPointSelect) // Lateral
+                                MedicalPoint(6, 0.39f, 0.66f, results[6], w, h, onPointSelect)
+                                MedicalPoint(7, 0.74f, 0.61f, results[7], w, h, onPointSelect)
 
-                                MedicalPoint(8, 0.50f, 0.88f, results[8], w, h, onPointSelect) // Calcanhar
+                                MedicalPoint(8, 0.69f, 0.80f, results[8], w, h, onPointSelect)
                             } else {
-                                // Pé Esquerdo (Dedão na Direita)
-                                MedicalPoint(0, 0.68f, 0.08f, results[0], w, h, onPointSelect) // Dedão
-                                MedicalPoint(1, 0.45f, 0.10f, results[1], w, h, onPointSelect) // Dedo 2
-                                MedicalPoint(2, 0.15f, 0.20f, results[2], w, h, onPointSelect) // Dedo 5
+                                // Pé Esquerdo (Espelho: 1.0 - X)
+                                MedicalPoint(0, 0.63f, 0.26f, results[0], w, h, onPointSelect)
+                                MedicalPoint(1, 0.74f, 0.48f, results[1], w, h, onPointSelect)
+                                MedicalPoint(2, 0.31f, 0.21f, results[2], w, h, onPointSelect)
 
-                                MedicalPoint(3, 0.75f, 0.30f, results[3], w, h, onPointSelect) // Meta 1
-                                MedicalPoint(4, 0.45f, 0.32f, results[4], w, h, onPointSelect) // Meta 3
-                                MedicalPoint(5, 0.15f, 0.38f, results[5], w, h, onPointSelect) // Meta 5
+                                MedicalPoint(3, 0.87f, 0.34f, results[3], w, h, onPointSelect)
+                                MedicalPoint(4, 0.55f, 0.35f, results[4], w, h, onPointSelect)
+                                MedicalPoint(5, 0.23f, 0.37f, results[5], w, h, onPointSelect)
 
-                                MedicalPoint(6, 0.70f, 0.60f, results[6], w, h, onPointSelect) // Arco
-                                MedicalPoint(7, 0.25f, 0.58f, results[7], w, h, onPointSelect) // Lateral
+                                MedicalPoint(6, 0.61f, 0.66f, results[6], w, h, onPointSelect)
+                                MedicalPoint(7, 0.26f, 0.61f, results[7], w, h, onPointSelect)
 
-                                MedicalPoint(8, 0.50f, 0.88f, results[8], w, h, onPointSelect) // Calcanhar
+                                MedicalPoint(8, 0.31f, 0.80f, results[8], w, h, onPointSelect)
                             }
                         }
                     }
@@ -351,7 +353,13 @@ fun MedicalPoint(index: Int, xPercent: Float, yPercent: Float, resultLevel: Int?
     val offsetY = parentHeight * yPercent - 15.dp
 
     Box(
-        modifier = Modifier.offset(x = offsetX, y = offsetY).size(30.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape).background(baseColor.copy(alpha = if (isDone) 1f else 0.5f)).clickable { onClick(index) },
+        modifier = Modifier
+            .offset(x = offsetX, y = offsetY)
+            .size(30.dp)
+            .clip(CircleShape)
+            .border(2.dp, Color.White, CircleShape)
+            .background(baseColor.copy(alpha = if (isDone) 1f else 0.5f))
+            .clickable { onClick(index) },
         contentAlignment = Alignment.Center
     ) {
         Box(modifier = Modifier.fillMaxSize().background(baseColor).alpha(finalAlpha))
@@ -388,7 +396,7 @@ fun MeasurementDialog(currentLevel: Int, onDismiss: () -> Unit) {
 fun TesteScreenPreview() {
     com.code.EstesioTech.ui.theme.EstesioTechTheme {
         TesteScreen(
-            bodyPart = "mao_direita",
+            bodyPart = "mao_esquerda",
             results = mapOf(0 to 1),
             activePointIndex = -1,
             currentBleValue = 0,
