@@ -34,7 +34,16 @@ fun TechTextField(
 
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            // TRAVA DE SEGURANÇA: Se for campo numérico, só aceita dígitos
+            if (keyboardType == KeyboardType.Number) {
+                if (newValue.all { it.isDigit() }) {
+                    onValueChange(newValue)
+                }
+            } else {
+                onValueChange(newValue)
+            }
+        },
         label = { Text(label) },
         leadingIcon = { Icon(icon, contentDescription = null, tint = techColor) },
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
@@ -56,7 +65,6 @@ fun TechTextField(
     )
 }
 
-// CORREÇÃO: SELETOR DE ESTADOS LIMPO E FUNCIONAL
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TechStateDropdown(
@@ -67,7 +75,6 @@ fun TechStateDropdown(
     var statesList by remember { mutableStateOf<List<IbgeState>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Busca os estados ao iniciar
     LaunchedEffect(Unit) {
         isLoading = true
         statesList = IbgeProvider.getBrazilianStates()
@@ -76,8 +83,6 @@ fun TechStateDropdown(
 
     val techColor = Color(0xFF00ACC1)
     val glassColor = Color.Black.copy(alpha = 0.2f)
-
-    // Animação da seta girando
     val rotationState by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "arrow")
 
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -85,9 +90,8 @@ fun TechStateDropdown(
             value = if (selectedState.isEmpty()) "" else selectedState,
             onValueChange = {},
             readOnly = true,
-            label = { Text("UF") }, // Label curto para economizar espaço
+            label = { Text("UF") },
             placeholder = { Text("UF") },
-            // REMOVIDO: leadingIcon (a seta da esquerda que estava duplicada)
             trailingIcon = {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = techColor, strokeWidth = 2.dp)
@@ -96,7 +100,7 @@ fun TechStateDropdown(
                         imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = "Expandir",
                         tint = if (expanded) techColor else Color.Gray,
-                        modifier = Modifier.rotate(rotationState) // Gira a seta da direita
+                        modifier = Modifier.rotate(rotationState)
                     )
                 }
             },
@@ -114,20 +118,12 @@ fun TechStateDropdown(
             )
         )
 
-        // Área de clique que cobre o campo todo
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clickable { if (!isLoading) expanded = !expanded }
-        )
+        Box(modifier = Modifier.matchParentSize().clickable { if (!isLoading) expanded = !expanded })
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .background(Color(0xFF1A2634))
-                .fillMaxWidth(0.9f) // Ocupa quase toda a largura relativa
-                .heightIn(max = 250.dp) // IMPORTANTE: Limita a altura para não cobrir a tela
+            modifier = Modifier.background(Color(0xFF1A2634)).fillMaxWidth(0.9f).heightIn(max = 250.dp)
         ) {
             statesList.forEach { state ->
                 DropdownMenuItem(
@@ -136,10 +132,7 @@ fun TechStateDropdown(
                         onStateSelected(state.sigla)
                         expanded = false
                     },
-                    colors = MenuDefaults.itemColors(
-                        textColor = Color.White,
-                        leadingIconColor = techColor
-                    )
+                    colors = MenuDefaults.itemColors(textColor = Color.White, leadingIconColor = techColor)
                 )
             }
         }

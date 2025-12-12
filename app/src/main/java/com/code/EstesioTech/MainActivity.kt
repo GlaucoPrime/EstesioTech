@@ -241,3 +241,12 @@ fun ScanScreen(bluetoothAdapter: BluetoothAdapter?, onDeviceClick: (BluetoothDev
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+fun ScanScreenPreview() {
+    com.code.EstesioTech.ui.theme.EstesioTechTheme {
+        // Passamos null no adapter pois o preview não tem bluetooth real
+        ScanScreen(bluetoothAdapter = null, onDeviceClick = {})
+    }
+}

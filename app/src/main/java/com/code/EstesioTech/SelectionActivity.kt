@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.code.EstesioTech.ui.theme.EstesioTechTheme
@@ -25,50 +26,56 @@ class SelectionActivity : ComponentActivity() {
 
         setContent {
             EstesioTechTheme {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF101820))
-                        .padding(24.dp)
-                ) {
-                    Text("MAPEAMENTO", color = Color(0xFF00ACC1), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Text("Selecione a Região", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // Grid Mãos
-                    Row(Modifier.weight(1f)) {
-                        AnatomyCard("Mão\nDireita", "R", Color(0xFF2196F3), Modifier.weight(1f)) {
-                            openTest(deviceAddress, "mao_direita")
+                SelectionScreen(
+                    onPartSelected = { part ->
+                        val intent = Intent(this, TesteActivity::class.java).apply {
+                            putExtra("DEVICE_ADDRESS", deviceAddress)
+                            putExtra("BODY_PART", part)
                         }
-                        Spacer(Modifier.width(16.dp))
-                        AnatomyCard("Mão\nEsquerda", "L", Color(0xFF2196F3), Modifier.weight(1f)) {
-                            openTest(deviceAddress, "mao_esquerda")
-                        }
+                        startActivity(intent)
                     }
-                    Spacer(Modifier.height(16.dp))
-
-                    // Grid Pés
-                    Row(Modifier.weight(1f)) {
-                        AnatomyCard("Pé\nDireito", "R", Color(0xFFFF9800), Modifier.weight(1f)) {
-                            openTest(deviceAddress, "pe_direito")
-                        }
-                        Spacer(Modifier.width(16.dp))
-                        AnatomyCard("Pé\nEsquerdo", "L", Color(0xFFFF9800), Modifier.weight(1f)) {
-                            openTest(deviceAddress, "pe_esquerdo")
-                        }
-                    }
-                }
+                )
             }
         }
     }
+}
 
-    private fun openTest(address: String?, part: String) {
-        val intent = Intent(this, TesteActivity::class.java).apply {
-            putExtra("DEVICE_ADDRESS", address)
-            putExtra("BODY_PART", part)
+// CRIEI ESTE COMPONENTE SEPARADO PARA PODERMOS DAR PREVIEW
+@Composable
+fun SelectionScreen(onPartSelected: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF101820))
+            .padding(24.dp)
+    ) {
+        Text("MAPEAMENTO", color = Color(0xFF00ACC1), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text("Selecione a Região", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Grid Mãos
+        Row(Modifier.weight(1f)) {
+            AnatomyCard("Mão\nDireita", "R", Color(0xFF2196F3), Modifier.weight(1f)) {
+                onPartSelected("mao_direita")
+            }
+            Spacer(Modifier.width(16.dp))
+            AnatomyCard("Mão\nEsquerda", "L", Color(0xFF2196F3), Modifier.weight(1f)) {
+                onPartSelected("mao_esquerda")
+            }
         }
-        startActivity(intent)
+        Spacer(Modifier.height(16.dp))
+
+        // Grid Pés
+        Row(Modifier.weight(1f)) {
+            AnatomyCard("Pé\nDireito", "R", Color(0xFFFF9800), Modifier.weight(1f)) {
+                onPartSelected("pe_direito")
+            }
+            Spacer(Modifier.width(16.dp))
+            AnatomyCard("Pé\nEsquerdo", "L", Color(0xFFFF9800), Modifier.weight(1f)) {
+                onPartSelected("pe_esquerdo")
+            }
+        }
     }
 }
 
@@ -100,5 +107,14 @@ fun AnatomyCard(title: String, side: String, color: Color, modifier: Modifier, o
                 Text("Iniciar Teste >", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
             }
         }
+    }
+}
+
+// --- PREVIEW DO SELETOR ---
+@Preview(showBackground = true)
+@Composable
+fun SelectionScreenPreview() {
+    EstesioTechTheme {
+        SelectionScreen(onPartSelected = {})
     }
 }

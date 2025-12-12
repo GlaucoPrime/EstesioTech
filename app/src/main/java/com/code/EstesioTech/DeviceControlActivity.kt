@@ -154,3 +154,18 @@ fun ChatScreen(messages: List<ChatMessage>, modifier: Modifier) {
         }
     }
 }
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+fun ChatScreenPreview() {
+    com.code.EstesioTech.ui.theme.EstesioTechTheme {
+        ChatScreen(
+            messages = listOf(
+                ChatMessage("Conectando...", ChatMessage.TYPE_SYSTEM),
+                ChatMessage("Olá ESP32!", ChatMessage.TYPE_SENT),
+                ChatMessage("Pressão: 3 (Violeta)", ChatMessage.TYPE_RECEIVED),
+                ChatMessage("Enviado", ChatMessage.TYPE_RECEIVED)
+            ),
+            modifier = androidx.compose.ui.Modifier
+        )
+    }
+}

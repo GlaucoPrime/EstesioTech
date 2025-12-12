@@ -124,3 +124,11 @@ fun RegisterScreen(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview
+@Composable
+fun RegisterScreenPreview() {
+    com.code.EstesioTech.ui.theme.EstesioTechTheme {
+        RegisterScreen(onRegisterClick = { _, _, _, _, _ -> }, onBackClick = {})
+    }
+}
