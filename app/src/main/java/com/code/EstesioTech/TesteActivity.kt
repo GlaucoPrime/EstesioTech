@@ -45,12 +45,21 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
     private var lastValidValue = 0
     private val resultsMap = mutableStateMapOf<Int, Int>()
     private val isBleConnected = mutableStateOf(false)
+
+    // Dados do contexto
     private var currentBodyPart = ""
+    private var patientId = ""
+    private var patientName = ""
+
     private val isSaving = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Recupera dados da Intent ou usa padrões temporários
         currentBodyPart = intent.getStringExtra("BODY_PART") ?: "mao_direita"
+        patientId = intent.getStringExtra("PATIENT_ID") ?: "temp_patient_id"
+        patientName = intent.getStringExtra("PATIENT_NAME") ?: "Paciente Visitante"
 
         BleManager.setListener(this)
         isBleConnected.value = BleManager.isConnected()
@@ -67,6 +76,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
     fun MainContent() {
         TesteScreen(
             bodyPart = currentBodyPart,
+            patientName = patientName, // Passa o nome para a UI
             results = resultsMap,
             activePointIndex = activePointIndex.intValue,
             currentBleValue = currentBleValue.intValue,
@@ -100,11 +110,15 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 
     private fun saveResultsToCloud() {
         if (resultsMap.isEmpty()) {
-            Toast.makeText(this, "Teste pelo menos 1 ponto.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Teste vazio. Preencha ao menos um ponto.", Toast.LENGTH_SHORT).show()
             return
         }
         isSaving.value = true
+
+        // CORREÇÃO: Passando patientId e patientName para a função do Cloud
         EstesioCloud.saveTestResult(
+            patientId = patientId,
+            patientName = patientName,
             bodyPart = currentBodyPart,
             results = resultsMap.toMap(),
             onSuccess = {
@@ -114,7 +128,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
             },
             onError = { erro ->
                 isSaving.value = false
-                Toast.makeText(this, "Erro ao salvar: $erro", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Erro: $erro", Toast.LENGTH_LONG).show()
             }
         )
     }
@@ -154,6 +168,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 @Composable
 fun TesteScreen(
     bodyPart: String,
+    patientName: String, // Novo parâmetro na UI
     results: Map<Int, Int>,
     activePointIndex: Int,
     currentBleValue: Int,
@@ -166,6 +181,7 @@ fun TesteScreen(
     onSaveToCloud: () -> Unit
 ) {
     val isHand = bodyPart.contains("mao")
+
     val title = when(bodyPart) {
         "mao_direita" -> "Mão Direita"
         "mao_esquerda" -> "Mão Esquerda"
@@ -189,20 +205,7 @@ fun TesteScreen(
                 title = {
                     Column {
                         Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                if(isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled,
-                                contentDescription = null,
-                                tint = if(isConnected) Color.Green else Color.Red,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                if(isConnected) "Conectado" else "Desconectado",
-                                color = if(isConnected) Color.Green else Color.Red,
-                                fontSize = 12.sp
-                            )
-                        }
+                        Text("Paciente: $patientName", color = Color(0xFF80DEEA), fontSize = 12.sp)
                     }
                 },
                 navigationIcon = {
@@ -211,6 +214,13 @@ fun TesteScreen(
                     }
                 },
                 actions = {
+                    // Ícone de Bluetooth no canto
+                    Icon(
+                        if(isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled,
+                        contentDescription = null,
+                        tint = if(isConnected) Color.Green else Color.Red,
+                        modifier = Modifier.padding(end = 8.dp).size(20.dp)
+                    )
                     IconButton(onClick = onHomeClick, enabled = !isSaving) {
                         Icon(Icons.Default.Home, "Home", tint = Color.White)
                     }
@@ -229,6 +239,7 @@ fun TesteScreen(
                 .padding(paddingValues)
                 .background(Brush.verticalGradient(colors = listOf(Color(0xFF101820), Color(0xFF000000))))
         ) {
+
             BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
@@ -236,7 +247,11 @@ fun TesteScreen(
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Box(modifier = Modifier.fillMaxWidth(0.95f).aspectRatio(containerRatio)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.95f)
+                        .aspectRatio(containerRatio)
+                ) {
                     Image(
                         painter = painterResource(id = imageRes),
                         contentDescription = null,
@@ -250,6 +265,7 @@ fun TesteScreen(
 
                         if (isHand) {
                             if(bodyPart == "mao_direita") {
+                                // Mão Direita (Valores calibrados por você)
                                 MedicalPoint(0, 0.08f, 0.35f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.58f, 0.26f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.57f, 0.42f, results[2], w, h, onPointSelect)
@@ -257,6 +273,7 @@ fun TesteScreen(
                                 MedicalPoint(4, 0.86f, 0.51f, results[4], w, h, onPointSelect)
                                 MedicalPoint(5, 0.22f, 0.61f, results[5], w, h, onPointSelect)
                             } else {
+                                // Mão Esquerda (Espelho: 1.0 - X)
                                 MedicalPoint(0, 0.92f, 0.35f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.42f, 0.26f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.43f, 0.42f, results[2], w, h, onPointSelect)
@@ -266,24 +283,32 @@ fun TesteScreen(
                             }
                         } else {
                             if (bodyPart == "pe_direito") {
+                                // Pé Direito (Valores calibrados por você)
                                 MedicalPoint(0, 0.37f, 0.26f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.26f, 0.48f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.69f, 0.21f, results[2], w, h, onPointSelect)
+
                                 MedicalPoint(3, 0.13f, 0.34f, results[3], w, h, onPointSelect)
                                 MedicalPoint(4, 0.45f, 0.35f, results[4], w, h, onPointSelect)
                                 MedicalPoint(5, 0.77f, 0.37f, results[5], w, h, onPointSelect)
+
                                 MedicalPoint(6, 0.39f, 0.66f, results[6], w, h, onPointSelect)
                                 MedicalPoint(7, 0.74f, 0.61f, results[7], w, h, onPointSelect)
+
                                 MedicalPoint(8, 0.69f, 0.80f, results[8], w, h, onPointSelect)
                             } else {
+                                // Pé Esquerdo (Espelho: 1.0 - X)
                                 MedicalPoint(0, 0.63f, 0.26f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.74f, 0.48f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.31f, 0.21f, results[2], w, h, onPointSelect)
+
                                 MedicalPoint(3, 0.87f, 0.34f, results[3], w, h, onPointSelect)
                                 MedicalPoint(4, 0.55f, 0.35f, results[4], w, h, onPointSelect)
                                 MedicalPoint(5, 0.23f, 0.37f, results[5], w, h, onPointSelect)
+
                                 MedicalPoint(6, 0.61f, 0.66f, results[6], w, h, onPointSelect)
                                 MedicalPoint(7, 0.26f, 0.61f, results[7], w, h, onPointSelect)
+
                                 MedicalPoint(8, 0.31f, 0.80f, results[8], w, h, onPointSelect)
                             }
                         }
@@ -307,7 +332,7 @@ fun TesteScreen(
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Diagnóstico Global", color = Color.Gray, fontSize = 12.sp)
+                        Text("Diagnóstico (OMS)", color = Color.Gray, fontSize = 12.sp)
                         Text(globalResult.description, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -333,7 +358,13 @@ fun MedicalPoint(index: Int, xPercent: Float, yPercent: Float, resultLevel: Int?
     val offsetY = parentHeight * yPercent - 15.dp
 
     Box(
-        modifier = Modifier.offset(x = offsetX, y = offsetY).size(30.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape).background(baseColor.copy(alpha = if (isDone) 1f else 0.5f)).clickable { onClick(index) },
+        modifier = Modifier
+            .offset(x = offsetX, y = offsetY)
+            .size(30.dp)
+            .clip(CircleShape)
+            .border(2.dp, Color.White, CircleShape)
+            .background(baseColor.copy(alpha = if (isDone) 1f else 0.5f))
+            .clickable { onClick(index) },
         contentAlignment = Alignment.Center
     ) {
         Box(modifier = Modifier.fillMaxSize().background(baseColor).alpha(finalAlpha))
@@ -365,12 +396,14 @@ fun MeasurementDialog(currentLevel: Int, onDismiss: () -> Unit) {
     }
 }
 
+// PREVIEW
 @androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
 fun TesteScreenPreview() {
     com.code.EstesioTech.ui.theme.EstesioTechTheme {
         TesteScreen(
             bodyPart = "mao_direita",
+            patientName = "João Silva",
             results = mapOf(0 to 1),
             activePointIndex = -1,
             currentBleValue = 0,
