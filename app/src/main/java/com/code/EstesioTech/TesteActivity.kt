@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +20,7 @@ import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,42 +48,53 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
     private val resultsMap = mutableStateMapOf<Int, Int>()
     private val isBleConnected = mutableStateOf(false)
 
-    // Dados do contexto
     private var currentBodyPart = ""
-    private var patientId = ""
+    private var patientCpf = ""
     private var patientName = ""
+    private var sessionId = ""
 
     private val isSaving = mutableStateOf(false)
+    private val showResetReminder = mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Recupera dados da Intent ou usa padrões temporários
         currentBodyPart = intent.getStringExtra("BODY_PART") ?: "mao_direita"
-        patientId = intent.getStringExtra("PATIENT_ID") ?: "temp_patient_id"
-        patientName = intent.getStringExtra("PATIENT_NAME") ?: "Paciente Visitante"
+        patientCpf = intent.getStringExtra("PATIENT_CPF") ?: ""
+        patientName = intent.getStringExtra("PATIENT_NAME") ?: "Desconhecido"
+        sessionId = intent.getStringExtra("SESSION_ID") ?: ""
 
         BleManager.setListener(this)
         isBleConnected.value = BleManager.isConnected()
-
-        val deviceAddress = intent.getStringExtra("DEVICE_ADDRESS")
-        if (deviceAddress != null && !BleManager.isConnected()) {
-            BleManager.connectToDevice(deviceAddress, this)
-        }
 
         setContent { EstesioTechTheme { MainContent() } }
     }
 
     @Composable
     fun MainContent() {
+        if (showResetReminder.value) {
+            AlertDialog(
+                onDismissRequest = { },
+                icon = { Icon(Icons.Default.Info, null, tint = Color(0xFF00ACC1)) },
+                title = { Text("Atenção, Doutor(a)", color = Color.White) },
+                text = { Text("Antes de iniciar este membro, certifique-se de apertar o botão RESET no dispositivo (LED piscará).", color = Color.Gray) },
+                containerColor = Color(0xFF1A2634),
+                confirmButton = {
+                    Button(onClick = { showResetReminder.value = false }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ACC1))) {
+                        Text("OK, Já Resetei")
+                    }
+                }
+            )
+        }
+
         TesteScreen(
             bodyPart = currentBodyPart,
-            patientName = patientName, // Passa o nome para a UI
+            patientName = patientName, // Adicionado
             results = resultsMap,
             activePointIndex = activePointIndex.intValue,
             currentBleValue = currentBleValue.intValue,
             isConnected = isBleConnected.value,
-            isSaving = isSaving.value,
+            isSaving = isSaving.value, // Adicionado
             onPointSelect = { index ->
                 if(!isSaving.value) {
                     activePointIndex.intValue = index
@@ -91,14 +104,9 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
             },
             onCloseMeasurement = { activePointIndex.intValue = -1 },
             onBackClick = { if(!isSaving.value) finish() },
-            onHomeClick = {
-                val intent = Intent(this, HomeActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                startActivity(intent)
-                finish()
-            },
-            onSaveToCloud = { saveResultsToCloud() }
+            onSaveToCache = { saveResultsToCache() }
         )
+
         if (isSaving.value) {
             Dialog(onDismissRequest = {}) {
                 Box(modifier = Modifier.size(100.dp).background(Color(0xFF1A2634), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
@@ -108,29 +116,15 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
         }
     }
 
-    private fun saveResultsToCloud() {
+    private fun saveResultsToCache() {
         if (resultsMap.isEmpty()) {
-            Toast.makeText(this, "Teste vazio. Preencha ao menos um ponto.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Realize ao menos um ponto de teste.", Toast.LENGTH_SHORT).show()
             return
         }
-        isSaving.value = true
-
-        // CORREÇÃO: Passando patientId e patientName para a função do Cloud
-        EstesioCloud.saveTestResult(
-            patientId = patientId,
-            patientName = patientName,
-            bodyPart = currentBodyPart,
-            results = resultsMap.toMap(),
-            onSuccess = {
-                isSaving.value = false
-                Toast.makeText(this, "Salvo com sucesso!", Toast.LENGTH_SHORT).show()
-                finish()
-            },
-            onError = { erro ->
-                isSaving.value = false
-                Toast.makeText(this, "Erro: $erro", Toast.LENGTH_LONG).show()
-            }
-        )
+        // Salva no cache local (não no banco ainda)
+        SessionCache.results[currentBodyPart] = resultsMap.toMap()
+        Toast.makeText(this, "Membro registrado. Volte para continuar.", Toast.LENGTH_SHORT).show()
+        finish()
     }
 
     override fun onDataReceived(data: String) {
@@ -142,7 +136,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
                 runOnUiThread {
                     resultsMap[currentIndex] = finalValue
                     activePointIndex.intValue = -1
-                    Toast.makeText(this, "Registrado!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Ponto registrado!", Toast.LENGTH_SHORT).show()
                 }
             }
         } else {
@@ -168,7 +162,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 @Composable
 fun TesteScreen(
     bodyPart: String,
-    patientName: String, // Novo parâmetro na UI
+    patientName: String,
     results: Map<Int, Int>,
     activePointIndex: Int,
     currentBleValue: Int,
@@ -177,26 +171,9 @@ fun TesteScreen(
     onPointSelect: (Int) -> Unit,
     onCloseMeasurement: () -> Unit,
     onBackClick: () -> Unit,
-    onHomeClick: () -> Unit,
-    onSaveToCloud: () -> Unit
+    onSaveToCache: () -> Unit
 ) {
     val isHand = bodyPart.contains("mao")
-
-    val title = when(bodyPart) {
-        "mao_direita" -> "Mão Direita"
-        "mao_esquerda" -> "Mão Esquerda"
-        "pe_direito" -> "Pé Direito"
-        "pe_esquerdo" -> "Pé Esquerdo"
-        else -> "Teste Clínico"
-    }
-    val imageRes = when(bodyPart) {
-        "mao_direita" -> R.drawable.right_hand
-        "mao_esquerda" -> R.drawable.left_hand
-        "pe_direito" -> R.drawable.right_foot
-        "pe_esquerdo" -> R.drawable.left_foot
-        else -> R.drawable.right_hand
-    }
-
     val containerRatio = if (isHand) 0.8f else 0.65f
 
     Scaffold(
@@ -204,29 +181,16 @@ fun TesteScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Paciente: $patientName", color = Color(0xFF80DEEA), fontSize = 12.sp)
+                        Text(if(isHand) "Mão" else "Pé", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(patientName, color = Color(0xFF80DEEA), fontSize = 12.sp)
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick, enabled = !isSaving) {
-                        Icon(Icons.Default.ArrowBack, "Voltar", tint = Color.White)
-                    }
+                    IconButton(onClick = onBackClick, enabled = !isSaving) { Icon(Icons.Default.ArrowBack, "Voltar", tint = Color.White) }
                 },
                 actions = {
-                    // Ícone de Bluetooth no canto
-                    Icon(
-                        if(isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled,
-                        contentDescription = null,
-                        tint = if(isConnected) Color.Green else Color.Red,
-                        modifier = Modifier.padding(end = 8.dp).size(20.dp)
-                    )
-                    IconButton(onClick = onHomeClick, enabled = !isSaving) {
-                        Icon(Icons.Default.Home, "Home", tint = Color.White)
-                    }
-                    IconButton(onClick = onSaveToCloud, enabled = !isSaving && results.isNotEmpty()) {
-                        Icon(Icons.Default.CloudUpload, "Salvar", tint = if(results.isNotEmpty()) Color(0xFF00ACC1) else Color.Gray)
-                    }
+                    Icon(if(isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled, null, tint = if(isConnected) Color.Green else Color.Red, modifier = Modifier.padding(end = 8.dp).size(20.dp))
+                    IconButton(onClick = onSaveToCache, enabled = !isSaving && results.isNotEmpty()) { Icon(Icons.Default.CheckCircle, "Salvar", tint = if(results.isNotEmpty()) Color(0xFF00ACC1) else Color.Gray) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF101820))
             )
@@ -234,38 +198,23 @@ fun TesteScreen(
         containerColor = Color(0xFF101820)
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Brush.verticalGradient(colors = listOf(Color(0xFF101820), Color(0xFF000000))))
+            modifier = Modifier.fillMaxSize().padding(paddingValues).background(Brush.verticalGradient(colors = listOf(Color(0xFF101820), Color(0xFF000000))))
         ) {
-
-            BoxWithConstraints(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.95f)
-                        .aspectRatio(containerRatio)
-                ) {
-                    Image(
-                        painter = painterResource(id = imageRes),
-                        contentDescription = null,
-                        contentScale = ContentScale.FillBounds,
-                        modifier = Modifier.fillMaxSize().alpha(0.9f)
-                    )
-
+            BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth(0.95f).aspectRatio(containerRatio)) {
+                    val imageRes = when(bodyPart) {
+                        "mao_direita" -> R.drawable.right_hand
+                        "mao_esquerda" -> R.drawable.left_hand
+                        "pe_direito" -> R.drawable.right_foot
+                        "pe_esquerdo" -> R.drawable.left_foot
+                        else -> R.drawable.right_hand
+                    }
+                    Image(painter = painterResource(id = imageRes), null, contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize().alpha(0.9f))
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val w = maxWidth
                         val h = maxHeight
-
                         if (isHand) {
                             if(bodyPart == "mao_direita") {
-                                // Mão Direita (Valores calibrados por você)
                                 MedicalPoint(0, 0.08f, 0.35f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.58f, 0.26f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.57f, 0.42f, results[2], w, h, onPointSelect)
@@ -273,7 +222,6 @@ fun TesteScreen(
                                 MedicalPoint(4, 0.86f, 0.51f, results[4], w, h, onPointSelect)
                                 MedicalPoint(5, 0.22f, 0.61f, results[5], w, h, onPointSelect)
                             } else {
-                                // Mão Esquerda (Espelho: 1.0 - X)
                                 MedicalPoint(0, 0.92f, 0.35f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.42f, 0.26f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.43f, 0.42f, results[2], w, h, onPointSelect)
@@ -283,62 +231,31 @@ fun TesteScreen(
                             }
                         } else {
                             if (bodyPart == "pe_direito") {
-                                // Pé Direito (Valores calibrados por você)
                                 MedicalPoint(0, 0.37f, 0.26f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.26f, 0.48f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.69f, 0.21f, results[2], w, h, onPointSelect)
-
                                 MedicalPoint(3, 0.13f, 0.34f, results[3], w, h, onPointSelect)
                                 MedicalPoint(4, 0.45f, 0.35f, results[4], w, h, onPointSelect)
                                 MedicalPoint(5, 0.77f, 0.37f, results[5], w, h, onPointSelect)
-
                                 MedicalPoint(6, 0.39f, 0.66f, results[6], w, h, onPointSelect)
                                 MedicalPoint(7, 0.74f, 0.61f, results[7], w, h, onPointSelect)
-
                                 MedicalPoint(8, 0.69f, 0.80f, results[8], w, h, onPointSelect)
                             } else {
-                                // Pé Esquerdo (Espelho: 1.0 - X)
                                 MedicalPoint(0, 0.63f, 0.26f, results[0], w, h, onPointSelect)
                                 MedicalPoint(1, 0.74f, 0.48f, results[1], w, h, onPointSelect)
                                 MedicalPoint(2, 0.31f, 0.21f, results[2], w, h, onPointSelect)
-
                                 MedicalPoint(3, 0.87f, 0.34f, results[3], w, h, onPointSelect)
                                 MedicalPoint(4, 0.55f, 0.35f, results[4], w, h, onPointSelect)
                                 MedicalPoint(5, 0.23f, 0.37f, results[5], w, h, onPointSelect)
-
                                 MedicalPoint(6, 0.61f, 0.66f, results[6], w, h, onPointSelect)
                                 MedicalPoint(7, 0.26f, 0.61f, results[7], w, h, onPointSelect)
-
                                 MedicalPoint(8, 0.31f, 0.80f, results[8], w, h, onPointSelect)
                             }
                         }
                     }
                 }
             }
-
-            // CARD STATUS
-            val filledValues = results.values.filter { it > 0 }
-            val averageLevel = if (filledValues.isNotEmpty()) filledValues.average().let { kotlin.math.round(it).toInt() } else 0
-            val globalResult = ClinicalScale.getResult(averageLevel)
-
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A242E)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, globalResult.color.copy(alpha=0.3f))
-            ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(50.dp).clip(CircleShape).background(globalResult.color.copy(alpha = 0.2f)).border(2.dp, globalResult.color, CircleShape), contentAlignment = Alignment.Center) {
-                        Text(if(averageLevel > 0) "$averageLevel" else "-", color = globalResult.color, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Diagnóstico (OMS)", color = Color.Gray, fontSize = 12.sp)
-                        Text(globalResult.description, color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
         }
-
         if (activePointIndex != -1 && !isSaving) {
             MeasurementDialog(currentLevel = currentBleValue, onDismiss = onCloseMeasurement)
         }
@@ -352,22 +269,10 @@ fun MedicalPoint(index: Int, xPercent: Float, yPercent: Float, resultLevel: Int?
     val infiniteTransition = rememberInfiniteTransition(label = "blink")
     val alphaAnim by infiniteTransition.animateFloat(initialValue = 0.3f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha")
     val baseColor = if (isDone) resultData.color else Color(0xFF00ACC1)
-    val finalAlpha = if (isDone) 1f else alphaAnim
-
     val offsetX = parentWidth * xPercent - 15.dp
     val offsetY = parentHeight * yPercent - 15.dp
-
-    Box(
-        modifier = Modifier
-            .offset(x = offsetX, y = offsetY)
-            .size(30.dp)
-            .clip(CircleShape)
-            .border(2.dp, Color.White, CircleShape)
-            .background(baseColor.copy(alpha = if (isDone) 1f else 0.5f))
-            .clickable { onClick(index) },
-        contentAlignment = Alignment.Center
-    ) {
-        Box(modifier = Modifier.fillMaxSize().background(baseColor).alpha(finalAlpha))
+    Box(modifier = Modifier.offset(x = offsetX, y = offsetY).size(30.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape).background(baseColor.copy(alpha = if (isDone) 1f else 0.5f)).clickable { onClick(index) }, contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxSize().background(baseColor).alpha(if (isDone) 1f else alphaAnim))
         if (isDone) Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(16.dp))
     }
 }
@@ -376,7 +281,7 @@ fun MedicalPoint(index: Int, xPercent: Float, yPercent: Float, resultLevel: Int?
 fun MeasurementDialog(currentLevel: Int, onDismiss: () -> Unit) {
     val data = ClinicalScale.getResult(currentLevel)
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A242E)), border = androidx.compose.foundation.BorderStroke(1.dp, data.color.copy(alpha=0.5f))) {
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A242E)), border = BorderStroke(1.dp, data.color.copy(alpha=0.5f))) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Analisando Sensibilidade", color = Color(0xFF00ACC1), fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(24.dp))
@@ -396,15 +301,14 @@ fun MeasurementDialog(currentLevel: Int, onDismiss: () -> Unit) {
     }
 }
 
-// PREVIEW
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Preview(showBackground = true)
 @Composable
 fun TesteScreenPreview() {
-    com.code.EstesioTech.ui.theme.EstesioTechTheme {
+    EstesioTechTheme {
         TesteScreen(
             bodyPart = "mao_direita",
-            patientName = "João Silva",
-            results = mapOf(0 to 1),
+            patientName = "Paciente Teste",
+            results = mapOf(0 to 2, 1 to 4),
             activePointIndex = -1,
             currentBleValue = 0,
             isConnected = true,
@@ -412,8 +316,7 @@ fun TesteScreenPreview() {
             onPointSelect = {},
             onCloseMeasurement = {},
             onBackClick = {},
-            onHomeClick = {},
-            onSaveToCloud = {}
+            onSaveToCache = {}
         )
     }
 }
