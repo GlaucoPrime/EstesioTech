@@ -23,22 +23,18 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -73,44 +69,118 @@ class SelectionActivity : ComponentActivity() {
 
         setContent {
             EstesioTechTheme {
-                SelectionScreen(
-                    patientName = patientName,
-                    patientCpf = patientCpf,
-                    sessionId = sessionId,
-                    onBack = { finish() },
-                    onNavigateToTest = { bodyPart ->
-                        val intent = Intent(this, TesteActivity::class.java).apply {
-                            putExtra("SESSION_ID", sessionId)
-                            putExtra("PATIENT_CPF", patientCpf)
-                            putExtra("PATIENT_NAME", patientName)
-                            putExtra("BODY_PART", bodyPart)
-                        }
-                        startActivity(intent)
-                    },
-                    onFinalizeAndSave = { hasDeformities ->
-                        EstesioCloud.saveCompleteSession(
-                            sessionId, patientCpf, patientName, SessionCache.results, hasDeformities,
-                            onSuccess = {
-                                Toast.makeText(this, "Sessão salva com sucesso!", Toast.LENGTH_SHORT).show()
-                            },
-                            onError = {
-                                Toast.makeText(this, "Erro ao salvar: $it", Toast.LENGTH_LONG).show()
+                // Estado de Loading Global para esta tela
+                var isLoading by remember { mutableStateOf(false) }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    SelectionScreen(
+                        patientName = patientName,
+                        patientCpf = patientCpf,
+                        sessionId = sessionId,
+                        onBack = { finish() },
+                        onNavigateToTest = { bodyPart ->
+                            // CORREÇÃO: Usando this@SelectionActivity para garantir o Contexto correto
+                            val intent = Intent(this@SelectionActivity, TesteActivity::class.java).apply {
+                                putExtra("SESSION_ID", sessionId)
+                                putExtra("PATIENT_CPF", patientCpf)
+                                putExtra("PATIENT_NAME", patientName)
+                                putExtra("BODY_PART", bodyPart)
                             }
-                        )
-                    },
-                    onGeneratePDF = { action ->
-                        generatePDF(sessionId, patientName, patientCpf, action)
+                            startActivity(intent)
+                        },
+                        onFinalizeAndSave = { hasDeformities ->
+                            isLoading = true
+                            EstesioCloud.saveCompleteSession(
+                                sessionId, patientCpf, patientName, SessionCache.results, hasDeformities,
+                                onSuccess = {
+                                    isLoading = false
+                                    // CORREÇÃO: Contexto específico
+                                    Toast.makeText(this@SelectionActivity, "Sessão salva com sucesso!", Toast.LENGTH_SHORT).show()
+                                },
+                                onError = {
+                                    isLoading = false
+                                    // CORREÇÃO: Contexto específico
+                                    Toast.makeText(this@SelectionActivity, "Erro ao salvar: $it", Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        },
+                        onGeneratePDF = { action ->
+                            isLoading = true
+                            generatePDF(sessionId, patientName, patientCpf, action) {
+                                isLoading = false
+                            }
+                        }
+                    )
+
+                    // Overlay de Carregamento
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.7f))
+                                .clickable(enabled = false) {},
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = Color(0xFF00ACC1))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Processando...", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
-                )
+                }
             }
         }
     }
 
-    private fun generatePDF(sessionId: String, name: String, cpf: String, action: String) {
-        Toast.makeText(this, "Processando dados...", Toast.LENGTH_SHORT).show()
-
+    private fun generatePDF(sessionId: String, name: String, cpf: String, action: String, onComplete: () -> Unit) {
         EstesioCloud.getFullSessionData(sessionId, onSuccess = { data ->
             try {
+                // --- PDF CONFIGURATION ---
+                val pdfDocument = PdfDocument()
+                val pageWidth = 595
+                val pageHeight = 842
+                val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
+                var page = pdfDocument.startPage(pageInfo)
+                var canvas = page.canvas
+
+                // --- PAINTS (Estilos) ---
+                val titlePaint = Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 24f
+                    isFakeBoldText = true
+                    textAlign = Paint.Align.LEFT
+                }
+                val headerBgPaint = Paint().apply { color = android.graphics.Color.rgb(26, 38, 52) } // Dark Blue do App
+                val accentPaint = Paint().apply { color = android.graphics.Color.rgb(0, 172, 193) } // Cyan do App
+                val textPaint = Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    textSize = 12f
+                }
+                val boldTextPaint = Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    textSize = 12f
+                    isFakeBoldText = true
+                }
+                val riskPaint = Paint().apply { textSize = 14f; isFakeBoldText = true }
+
+                // --- HEADER ---
+                canvas.drawRect(0f, 0f, pageWidth.toFloat(), 80f, headerBgPaint)
+                canvas.drawText("Relatório EstesioTech", 30f, 50f, titlePaint)
+
+                val dateStr = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date())
+                val datePaint = Paint().apply { color = android.graphics.Color.LTGRAY; textSize = 10f; textAlign = Paint.Align.RIGHT }
+                canvas.drawText("Gerado em: $dateStr", pageWidth - 30f, 50f, datePaint)
+
+                // --- DADOS DO PACIENTE ---
+                var yPos = 120f
+                canvas.drawText("DADOS DO PACIENTE", 30f, yPos, boldTextPaint)
+                yPos += 20f
+                canvas.drawText("Nome: $name", 30f, yPos, textPaint)
+                yPos += 15f
+                canvas.drawText("CPF: $cpf", 30f, yPos, textPaint)
+
+                // --- RESULTADO GLOBAL (GIF) ---
                 val maxGif = data.maxOfOrNull { (it["gif"] as? Long)?.toInt() ?: 0 } ?: 0
                 val gifText = when(maxGif) {
                     0 -> "Grau 0: Sensibilidade Preservada"
@@ -118,45 +188,56 @@ class SelectionActivity : ComponentActivity() {
                     else -> "Grau 2: Presença de Deformidades/Úlceras"
                 }
 
-                val pdfDocument = PdfDocument()
-                val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-                val page = pdfDocument.startPage(pageInfo)
-                val canvas = page.canvas
-                val paint = Paint()
+                yPos += 30f
+                // Desenha caixa de risco
+                val riskColor = if(maxGif > 0) android.graphics.Color.rgb(244, 67, 54) else android.graphics.Color.rgb(76, 175, 80) // Red or Green
+                val boxPaint = Paint().apply { color = riskColor; style = Paint.Style.FILL }
+                canvas.drawRect(30f, yPos, pageWidth - 30f, yPos + 40f, boxPaint)
 
-                paint.textSize = 18f
-                paint.isFakeBoldText = true
-                canvas.drawText("Relatório EstesioTech", 50f, 50f, paint)
-                paint.textSize = 12f
-                paint.isFakeBoldText = false
-                canvas.drawText("Paciente: $name", 50f, 80f, paint)
-                canvas.drawText("CPF: $cpf", 50f, 100f, paint)
-                canvas.drawText("Data: ${SimpleDateFormat("dd/MM/yyyy HH:mm").format(Date())}", 50f, 120f, paint)
+                riskPaint.color = android.graphics.Color.WHITE
+                canvas.drawText(gifText.uppercase(), 45f, yPos + 25f, riskPaint)
 
-                paint.textSize = 14f
-                paint.isFakeBoldText = true
-                paint.color = if(maxGif > 0) android.graphics.Color.RED else android.graphics.Color.rgb(0, 100, 0)
-                canvas.drawText("Avaliação OMS: $gifText", 50f, 160f, paint)
+                yPos += 70f
+                canvas.drawText("DETALHAMENTO DA AVALIAÇÃO", 30f, yPos, boldTextPaint)
+                canvas.drawLine(30f, yPos + 5f, pageWidth - 30f, yPos + 5f, accentPaint)
+                yPos += 30f
 
-                paint.color = android.graphics.Color.BLACK
-                paint.textSize = 12f
-                var yPos = 200f
-
+                // --- ITERAR TESTES ---
                 data.forEach { test ->
+                    // Checa se precisa de nova página
+                    if (yPos > pageHeight - 100) {
+                        pdfDocument.finishPage(page)
+                        page = pdfDocument.startPage(pageInfo)
+                        canvas = page.canvas
+                        yPos = 50f
+                    }
+
                     val part = (test["bodyPart"] as? String)?.replace("_", " ")?.uppercase() ?: "MEMBRO"
                     val points = test["pointsData"] as? Map<String, Any>
-                    canvas.drawText("- $part:", 50f, yPos, paint)
-                    yPos += 20f
-                    points?.forEach { (k, v) ->
+
+                    // Cabeçalho do Membro
+                    canvas.drawRect(30f, yPos, pageWidth - 30f, yPos + 20f, Paint().apply { color = android.graphics.Color.LTGRAY })
+                    canvas.drawText(part, 40f, yPos + 14f, boldTextPaint)
+                    yPos += 35f
+
+                    points?.toSortedMap()?.forEach { (k, v) ->
                         val pLevel = v.toString().toIntOrNull() ?: 0
                         val pDesc = ClinicalScale.getResult(pLevel).description
-                        canvas.drawText("   Ponto $k: Nível $v ($pDesc)", 50f, yPos, paint)
+
+                        // Destaque visual se houver perda de sensibilidade (> 2g/Violeta)
+                        val pointColor = if (pLevel >= 3) android.graphics.Color.RED else android.graphics.Color.BLACK
+                        textPaint.color = pointColor
+
+                        canvas.drawText("Ponto $k:", 40f, yPos, boldTextPaint)
+                        canvas.drawText("Filamento nível $v - $pDesc", 100f, yPos, textPaint)
                         yPos += 15f
                     }
-                    yPos += 10f
+                    yPos += 15f
                 }
+
                 pdfDocument.finishPage(page)
 
+                // --- SALVAR E COMPARTILHAR ---
                 val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                 val fileName = "EstesioTech_${name.replace(" ", "_")}_${System.currentTimeMillis()}.pdf"
                 val file = File(path, fileName)
@@ -166,22 +247,24 @@ class SelectionActivity : ComponentActivity() {
                 if (action == "download") {
                     Toast.makeText(this, "Salvo em Downloads: $fileName", Toast.LENGTH_LONG).show()
                 } else {
-                    try {
-                        val uri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", file)
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "application/pdf"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        startActivity(Intent.createChooser(shareIntent, "Enviar Relatório"))
-                    } catch (e: Exception) {
-                        Toast.makeText(this, "Erro ao compartilhar: ${e.message}", Toast.LENGTH_LONG).show()
+                    val uri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", file)
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
+                    startActivity(Intent.createChooser(shareIntent, "Enviar Relatório"))
                 }
             } catch (e: Exception) {
                 Toast.makeText(this, "Erro PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            } finally {
+                onComplete()
             }
-        }, onError = {})
+        }, onError = {
+            onComplete()
+            Toast.makeText(this, "Erro ao baixar dados: $it", Toast.LENGTH_SHORT).show()
+        })
     }
 }
 

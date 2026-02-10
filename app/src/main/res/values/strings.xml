@@ -1,60 +1,52 @@
 <resources>
     <string name="app_name">EstesioTech</string>
 
-    <!-- Strings do Login -->
-    <string name="app_title">ESTESIOTECH</string>
-    <string name="hint_login">Login</string>
-    <string name="hint_password">Senha</string>
-    <string name="button_login">Entrar</string>
-    <string name="login_button_clear">Limpar</string>
-    <string name="login_text_go_to_register">Ainda não tem conta? Cadastre-se</string>
+    <!-- Login & Register -->
+    <string name="login_title">Professional Access</string>
+    <string name="login_button">LOGIN</string>
+    <string name="register_button">CREATE ACCOUNT</string>
+    <string name="email_hint">E-mail</string>
+    <string name="password_hint">Password</string>
+    <string name="crm_hint">CRM</string>
+    <string name="remember_me">Remember me</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="new_here">New here? Create account</string>
+    <string name="authenticating">Authenticating...</string>
 
-    <!-- Strings da Tela de Cadastro -->
-    <string name="register_title">CRIAR CONTA</string>
-    <string name="register_hint_name">Nome completo</string>
-    <string name="register_hint_license">CRM ou CDEnf</string>
-    <string name="register_hint_password">Senha</string>
-    <string name="register_hint_confirm_password">Confirmar senha</string>
-    <string name="register_button_register">Cadastrar</string>
-    <string name="register_button_clear">Limpar</string>
-    <string name="register_text_go_to_login">Já tem uma conta? Faça o login</string>
+    <!-- Home -->
+    <string name="welcome">Hello,</string>
+    <string name="device_status_connected">Connected</string>
+    <string name="device_status_disconnected">Not Connected</string>
+    <string name="action_connect">CONNECT</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="new_exam">New Exam</string>
+    <string name="history">History</string>
+    <string name="accessibility_hint">Tip: Adjust Color Blindness modes in settings.</string>
 
-    <!-- Strings da Home -->
-    <string name="home_title">MENU PRINCIPAL</string>
-    <string name="home_button_connect">CONECTAR AO DISPOSITIVO</string>
-    <string name="home_button_start_test">INICIAR TESTE</string>
-    <string name="home_button_history">HISTÓRICO DE TESTES</string>
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="appearance_header">Appearance</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="accessibility_header">Accessibility</string>
+    <string name="font_size">Text Size</string>
+    <string name="color_blind_mode">Color Blindness Mode</string>
+    <string name="language_header">Language</string>
 
-    <!-- Strings da Tela de Scan (MainActivity) -->
-    <string name="scan_button_scan">Escanear Novamente</string>
-    <string name="scan_button_stop">Parar Scan</string>
-    <string name="scan_status_scanning">Procurando dispositivos...</string>
-    <string name="scan_status_finished">Procura finalizada.</string>
-    <string name="scan_status_none_found">Nenhum dispositivo encontrado.</string>
-    <string name="bluetooth_not_supported">Bluetooth não é suportado neste dispositivo.</string>
-    <string name="unknown_device">Dispositivo Desconhecido</string>
-    <string name="device_info_format">%1$s\n%2$s</string>
-    <string name="scan_error">Erro no scan: %d</string>
+    <!-- Color Blind Modes -->
+    <string name="mode_normal">Normal</string>
+    <string name="mode_protanopia">Protanopia (No Red)</string>
+    <string name="mode_deuteranopia">Deuteranopia (No Green)</string>
+    <string name="mode_tritanopia">Tritanopia (No Blue)</string>
+    <string name="mode_monochromacy">Monochromacy</string>
 
-    <!-- ✅ ESTA É A LINHA QUE FALTAVA E QUE VAI RESOLVER SEU PROBLEMA -->
-    <string name="scanning_devices">Procurando dispositivos...</string>
-
-    <string name="enable_bluetooth_first">Por favor, ative o Bluetooth primeiro.</string>
-    <string name="permissions_not_granted">Permissões não concedidas.</string>
-    <string name="location_required_title">Localização Necessária</string>
-    <string name="location_required_message">A localização precisa estar ativa para escanear dispositivos BLE.</string>
-    <string name="enable">Ativar</string>
-    <string name="cancel">Cancelar</string>
-
-    <!-- Strings do Chat -->
-    <string name="chat_title">Chat ESP32</string>
-    <string name="chat_hint">Digite a mensagem</string>
-    <string name="send_button_desc">Enviar Mensagem</string>
+    <!-- Dialogs -->
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+    <string name="start">Start</string>
+    <string name="new_patient_title">New Patient</string>
+    <string name="name_hint">Full Name</string>
+    <string name="cpf_hint">CPF (Numbers only)</string>
+    <!-- Menu Device Control -->
     <string name="menu_home">Home</string>
-    <string name="menu_disconnect">Desconectar</string>
-
-    <!-- Strings do Teste -->
-    <string name="test_placeholder_text">Ainda não implementado</string>
-    <string name="test_placeholder_button">Voltar ao Menu</string>
-
+    <string name="menu_disconnect">Disconnect</string>
 </resources>

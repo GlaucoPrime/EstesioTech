@@ -10,12 +10,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,10 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -43,6 +46,8 @@ class LoginActivity : ComponentActivity() {
 
         val sharedPref = getSharedPreferences("EstesioPrefs", Context.MODE_PRIVATE)
         val rememberMe = sharedPref.getBoolean("remember_me", false)
+        val isDarkTheme = sharedPref.getBoolean("dark_theme", true)
+        val colorBlindMode = sharedPref.getInt("color_blind_mode", 0)
 
         if (EstesioCloud.isUserLoggedIn() && rememberMe) {
             startActivity(Intent(this, HomeActivity::class.java))
@@ -51,42 +56,73 @@ class LoginActivity : ComponentActivity() {
         }
 
         setContent {
-            EstesioTechTheme {
-                LoginScreen(
-                    onLoginClick = { crm, uf, password, isRemember ->
-                        if (crm.isNotEmpty() && uf.isNotEmpty() && password.isNotEmpty()) {
-                            Toast.makeText(this, "Autenticando...", Toast.LENGTH_SHORT).show()
+            EstesioTechTheme(darkTheme = isDarkTheme, colorBlindMode = colorBlindMode) {
+                var isLoading by remember { mutableStateOf(false) }
 
-                            EstesioCloud.login(crm, uf, password,
-                                onSuccess = {
-                                    with (sharedPref.edit()) {
-                                        putBoolean("remember_me", isRemember)
-                                        apply()
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LoginScreen(
+                        isLoading = isLoading,
+                        onLoginClick = { crm, uf, password, isRemember ->
+                            if (crm.isNotEmpty() && uf.isNotEmpty() && password.isNotEmpty()) {
+                                isLoading = true
+                                EstesioCloud.login(crm, uf, password,
+                                    onSuccess = {
+                                        with (sharedPref.edit()) {
+                                            putBoolean("remember_me", isRemember)
+                                            apply()
+                                        }
+                                        isLoading = false
+                                        startActivity(Intent(this@LoginActivity, HomeActivity::class.java))
+                                        finish()
+                                    },
+                                    onError = { msg ->
+                                        isLoading = false
+                                        Toast.makeText(this@LoginActivity, msg, Toast.LENGTH_SHORT).show()
                                     }
-                                    startActivity(Intent(this, HomeActivity::class.java))
-                                    finish()
-                                },
-                                onError = { msg -> Toast.makeText(this, msg, Toast.LENGTH_SHORT).show() }
-                            )
-                        } else {
-                            Toast.makeText(this, "Preencha todos os campos.", Toast.LENGTH_SHORT).show()
+                                )
+                            } else {
+                                Toast.makeText(this@LoginActivity, "Preencha todos os campos.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onRegisterClick = {
+                            startActivity(Intent(this@LoginActivity, RegisterActivity::class.java))
+                        },
+                        onSettingsClick = {
+                            startActivity(Intent(this@LoginActivity, SettingsActivity::class.java))
                         }
-                    },
-                    onRegisterClick = { startActivity(Intent(this, RegisterActivity::class.java)) }
-                )
+                    )
+
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.7f))
+                                .clickable(enabled = false) {},
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = Color(0xFF00ACC1))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Autenticando...", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+    }
 }
 
-// --- API IBGE (Versão Privada para Login) ---
 private suspend fun fetchStatesLogin(): List<String> = withContext(Dispatchers.IO) {
     try {
         val url = URL("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = 5000
-
         if (connection.responseCode == 200) {
             val jsonString = connection.inputStream.bufferedReader().use { it.readText() }
             val jsonArray = JSONArray(jsonString)
@@ -98,15 +134,19 @@ private suspend fun fetchStatesLogin(): List<String> = withContext(Dispatchers.I
 }
 
 @Composable
-fun LoginScreen(onLoginClick: (String, String, String, Boolean) -> Unit, onRegisterClick: () -> Unit) {
+fun LoginScreen(
+    isLoading: Boolean,
+    onLoginClick: (String, String, String, Boolean) -> Unit,
+    onRegisterClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
     var crm by remember { mutableStateOf("") }
     var uf by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(false) }
     var showForgotPassword by remember { mutableStateOf(false) }
-
-    // Estados UF
     var ufList by remember { mutableStateOf<List<String>>(emptyList()) }
+
     LaunchedEffect(Unit) {
         val list = fetchStatesLogin()
         val fallbackList = listOf("AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO")
@@ -119,6 +159,17 @@ fun LoginScreen(onLoginClick: (String, String, String, Boolean) -> Unit, onRegis
             .background(Brush.verticalGradient(colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)))),
         contentAlignment = Alignment.Center
     ) {
+        // --- BOTÃO DE CONFIGURAÇÕES ---
+        IconButton(
+            onClick = onSettingsClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .background(Color.White.copy(alpha = 0.1f), CircleShape)
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = "Acessibilidade e Configurações", tint = Color.White)
+        }
+
         Card(
             modifier = Modifier.padding(24.dp).fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -164,6 +215,7 @@ fun LoginScreen(onLoginClick: (String, String, String, Boolean) -> Unit, onRegis
 
                 Button(
                     onClick = { onLoginClick(crm, uf, password, rememberMe) },
+                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth().height(56.dp).border(1.dp, Color(0xFF00ACC1).copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ACC1).copy(alpha = 0.2f), contentColor = Color(0xFF00ACC1)),
                     shape = RoundedCornerShape(12.dp)
@@ -179,7 +231,6 @@ fun LoginScreen(onLoginClick: (String, String, String, Boolean) -> Unit, onRegis
         }
     }
 
-    // Passa a lista de UFs para o Dialog
     if (showForgotPassword) {
         ForgotPasswordDialog(ufList = ufList, onDismiss = { showForgotPassword = false })
     }
@@ -191,6 +242,8 @@ fun ForgotPasswordDialog(ufList: List<String>, onDismiss: () -> Unit) {
     var crm by remember { mutableStateOf("") }
     var uf by remember { mutableStateOf("") }
     var sent by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A242E))) {
@@ -199,7 +252,7 @@ fun ForgotPasswordDialog(ufList: List<String>, onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (sent) {
-                    Text("Solicitação enviada! Se o CRM estiver correto, você receberá um e-mail.", color = Color.Green, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text("Solicitação enviada! Se o CRM estiver correto, receberá um e-mail.", color = Color.Green, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = onDismiss) { Text("Fechar") }
                 } else {
@@ -211,16 +264,29 @@ fun ForgotPasswordDialog(ufList: List<String>, onDismiss: () -> Unit) {
                     LoginStateDropdown(selectedState = uf, items = ufList, onStateSelected = { uf = it })
 
                     Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = {
                             if(crm.isNotEmpty() && uf.isNotEmpty()) {
-                                EstesioCloud.sendPasswordResetByCrm(crm, uf, onSuccess = { sent = true }, onError = {})
-                                sent = true // Feedback visual imediato
+                                isLoading = true
+                                EstesioCloud.sendPasswordResetByCrm(crm, uf,
+                                    onSuccess = {
+                                        isLoading = false
+                                        sent = true
+                                    },
+                                    onError = { error ->
+                                        isLoading = false
+                                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            } else {
+                                Toast.makeText(context, "Preencha CRM e UF", Toast.LENGTH_SHORT).show()
                             }
                         },
+                        enabled = !isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ACC1))
                     ) {
-                        Text("Buscar e Enviar")
+                        if (isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Buscar e Enviar")
                     }
                 }
             }
@@ -228,7 +294,6 @@ fun ForgotPasswordDialog(ufList: List<String>, onDismiss: () -> Unit) {
     }
 }
 
-// Componentes Privados para Login
 @Composable
 private fun LoginTextField(
     value: String,
@@ -263,7 +328,6 @@ private fun LoginTextField(
 @Composable
 private fun LoginStateDropdown(selectedState: String, items: List<String>, onStateSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
@@ -299,10 +363,16 @@ private fun LoginStateDropdown(selectedState: String, items: List<String>, onSta
     }
 }
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+// --- PREVIEW ---
+@Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
-    com.code.EstesioTech.ui.theme.EstesioTechTheme {
-        LoginScreen(onLoginClick = { _, _, _, _ -> }, onRegisterClick = {})
+    EstesioTechTheme {
+        LoginScreen(
+            isLoading = false,
+            onLoginClick = { _, _, _, _ -> },
+            onRegisterClick = {},
+            onSettingsClick = {}
+        )
     }
 }

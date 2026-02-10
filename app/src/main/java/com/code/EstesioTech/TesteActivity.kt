@@ -1,6 +1,6 @@
 package com.code.EstesioTech
 
-import android.content.Intent
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -58,6 +57,7 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocaleUtils.setLocale(this)
 
         currentBodyPart = intent.getStringExtra("BODY_PART") ?: "mao_direita"
         patientCpf = intent.getStringExtra("PATIENT_CPF") ?: ""
@@ -67,21 +67,32 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
         BleManager.setListener(this)
         isBleConnected.value = BleManager.isConnected()
 
-        setContent { EstesioTechTheme { MainContent() } }
+        val prefs = getSharedPreferences("EstesioPrefs", Context.MODE_PRIVATE)
+        val isDarkTheme = prefs.getBoolean("dark_theme", true)
+        val colorBlindMode = prefs.getInt("color_blind_mode", 0)
+        val fontScale = prefs.getFloat("font_scale", 1.0f)
+
+        setContent {
+            EstesioTechTheme(darkTheme = isDarkTheme, colorBlindMode = colorBlindMode, fontScale = fontScale) {
+                MainContent()
+            }
+        }
     }
 
     @Composable
     fun MainContent() {
+        val colors = MaterialTheme.colorScheme
+
         if (showResetReminder.value) {
             AlertDialog(
                 onDismissRequest = { },
-                icon = { Icon(Icons.Default.Info, null, tint = Color(0xFF00ACC1)) },
-                title = { Text("Atenção, Doutor(a)", color = Color.White) },
-                text = { Text("Antes de iniciar este membro, certifique-se de apertar o botão RESET no dispositivo (LED piscará).", color = Color.Gray) },
-                containerColor = Color(0xFF1A2634),
+                icon = { Icon(Icons.Default.Info, null, tint = colors.primary) },
+                title = { Text("Atenção", color = colors.onSurface) },
+                text = { Text("Antes de iniciar, aperte RESET no aparelho.", color = colors.onSurface) },
+                containerColor = colors.surface,
                 confirmButton = {
-                    Button(onClick = { showResetReminder.value = false }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00ACC1))) {
-                        Text("OK, Já Resetei")
+                    Button(onClick = { showResetReminder.value = false }, colors = ButtonDefaults.buttonColors(containerColor = colors.primary)) {
+                        Text("OK")
                     }
                 }
             )
@@ -89,12 +100,12 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 
         TesteScreen(
             bodyPart = currentBodyPart,
-            patientName = patientName, // Adicionado
+            patientName = patientName,
             results = resultsMap,
             activePointIndex = activePointIndex.intValue,
             currentBleValue = currentBleValue.intValue,
             isConnected = isBleConnected.value,
-            isSaving = isSaving.value, // Adicionado
+            isSaving = isSaving.value,
             onPointSelect = { index ->
                 if(!isSaving.value) {
                     activePointIndex.intValue = index
@@ -109,8 +120,8 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 
         if (isSaving.value) {
             Dialog(onDismissRequest = {}) {
-                Box(modifier = Modifier.size(100.dp).background(Color(0xFF1A2634), RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF00ACC1))
+                Box(modifier = Modifier.size(100.dp).background(colors.surface, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = colors.primary)
                 }
             }
         }
@@ -118,12 +129,11 @@ class TesteActivity : ComponentActivity(), BleManager.ConnectionListener {
 
     private fun saveResultsToCache() {
         if (resultsMap.isEmpty()) {
-            Toast.makeText(this, "Realize ao menos um ponto de teste.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Realize ao menos um ponto.", Toast.LENGTH_SHORT).show()
             return
         }
-        // Salva no cache local (não no banco ainda)
         SessionCache.results[currentBodyPart] = resultsMap.toMap()
-        Toast.makeText(this, "Membro registrado. Volte para continuar.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Salvo. Volte para continuar.", Toast.LENGTH_SHORT).show()
         finish()
     }
 
@@ -173,6 +183,7 @@ fun TesteScreen(
     onBackClick: () -> Unit,
     onSaveToCache: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
     val isHand = bodyPart.contains("mao")
     val containerRatio = if (isHand) 0.8f else 0.65f
 
@@ -181,24 +192,24 @@ fun TesteScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(if(isHand) "Mão" else "Pé", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(patientName, color = Color(0xFF80DEEA), fontSize = 12.sp)
+                        Text(if(isHand) "Mão" else "Pé", color = colors.onSurface, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        Text(patientName, color = colors.primary, style = MaterialTheme.typography.bodyMedium)
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick, enabled = !isSaving) { Icon(Icons.Default.ArrowBack, "Voltar", tint = Color.White) }
+                    IconButton(onClick = onBackClick, enabled = !isSaving) { Icon(Icons.Default.ArrowBack, "Voltar", tint = colors.onSurface) }
                 },
                 actions = {
-                    Icon(if(isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled, null, tint = if(isConnected) Color.Green else Color.Red, modifier = Modifier.padding(end = 8.dp).size(20.dp))
-                    IconButton(onClick = onSaveToCache, enabled = !isSaving && results.isNotEmpty()) { Icon(Icons.Default.CheckCircle, "Salvar", tint = if(results.isNotEmpty()) Color(0xFF00ACC1) else Color.Gray) }
+                    Icon(if(isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled, null, tint = if(isConnected) Color.Green else colors.error, modifier = Modifier.padding(end = 8.dp).size(20.dp))
+                    IconButton(onClick = onSaveToCache, enabled = !isSaving && results.isNotEmpty()) { Icon(Icons.Default.CheckCircle, "Salvar", tint = if(results.isNotEmpty()) colors.primary else Color.Gray) }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF101820))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface)
             )
         },
-        containerColor = Color(0xFF101820)
+        containerColor = colors.background
     ) { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).background(Brush.verticalGradient(colors = listOf(Color(0xFF101820), Color(0xFF000000))))
+            modifier = Modifier.fillMaxSize().padding(paddingValues).background(Brush.verticalGradient(colors = listOf(colors.background, colors.surface)))
         ) {
             BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
                 Box(modifier = Modifier.fillMaxWidth(0.95f).aspectRatio(containerRatio)) {
@@ -213,6 +224,7 @@ fun TesteScreen(
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                         val w = maxWidth
                         val h = maxHeight
+                        // ... (Coordenadas dos pontos mantidas igual - lógica visual) ...
                         if (isHand) {
                             if(bodyPart == "mao_direita") {
                                 MedicalPoint(0, 0.08f, 0.35f, results[0], w, h, onPointSelect)
@@ -268,7 +280,10 @@ fun MedicalPoint(index: Int, xPercent: Float, yPercent: Float, resultLevel: Int?
     val resultData = ClinicalScale.getResult(resultLevel ?: 0)
     val infiniteTransition = rememberInfiniteTransition(label = "blink")
     val alphaAnim by infiniteTransition.animateFloat(initialValue = 0.3f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha")
-    val baseColor = if (isDone) resultData.color else Color(0xFF00ACC1)
+
+    // Cores específicas para os pontos (poderia usar tema também, mas estas são clínicas padrão)
+    val baseColor = if (isDone) resultData.color else MaterialTheme.colorScheme.primary
+
     val offsetX = parentWidth * xPercent - 15.dp
     val offsetY = parentHeight * yPercent - 15.dp
     Box(modifier = Modifier.offset(x = offsetX, y = offsetY).size(30.dp).clip(CircleShape).border(2.dp, Color.White, CircleShape).background(baseColor.copy(alpha = if (isDone) 1f else 0.5f)).clickable { onClick(index) }, contentAlignment = Alignment.Center) {
@@ -280,22 +295,23 @@ fun MedicalPoint(index: Int, xPercent: Float, yPercent: Float, resultLevel: Int?
 @Composable
 fun MeasurementDialog(currentLevel: Int, onDismiss: () -> Unit) {
     val data = ClinicalScale.getResult(currentLevel)
+    val colors = MaterialTheme.colorScheme
+
     Dialog(onDismissRequest = onDismiss) {
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A242E)), border = BorderStroke(1.dp, data.color.copy(alpha=0.5f))) {
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = colors.surface), border = BorderStroke(1.dp, data.color.copy(alpha=0.5f))) {
             Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Analisando Sensibilidade", color = Color(0xFF00ACC1), fontSize = 16.sp)
+                Text("Analisando", color = colors.primary, style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(24.dp))
                 Box(modifier = Modifier.size(120.dp).clip(CircleShape).background(data.color.copy(alpha=0.2f)).border(4.dp, data.color, CircleShape), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(text = if(currentLevel == 0) "?" else "$currentLevel", color = data.color, fontSize = 40.sp, fontWeight = FontWeight.Bold)
-                        Text(text = if(currentLevel == 0) "Aguardando..." else data.force, color = Color.Gray, fontSize = 12.sp)
+                        Text(text = if(currentLevel == 0) "..." else data.force, color = colors.onSurface, fontSize = 12.sp)
                     }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                Text(data.description, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, textAlign = TextAlign.Center)
+                Text(data.description, color = colors.onSurface, fontWeight = FontWeight.SemiBold, fontSize = 18.sp, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCF6679)), modifier = Modifier.fillMaxWidth()) { Text("Cancelar Medição") }
-                Text("Aperte o botão RESET no aparelho para confirmar o ponto.", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(top = 16.dp), textAlign = TextAlign.Center)
+                Button(onClick = onDismiss, colors = ButtonDefaults.buttonColors(containerColor = colors.error), modifier = Modifier.fillMaxWidth()) { Text("Cancelar") }
             }
         }
     }

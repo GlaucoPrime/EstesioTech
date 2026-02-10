@@ -1,5 +1,7 @@
 package com.code.EstesioTech
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -9,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,6 +19,7 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.code.EstesioTech.ui.theme.EstesioTechTheme
@@ -39,40 +44,75 @@ import java.net.URL
 class RegisterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val prefs = getSharedPreferences("EstesioPrefs", Context.MODE_PRIVATE)
+        val isDarkTheme = prefs.getBoolean("dark_theme", true)
+        val colorBlindMode = prefs.getInt("color_blind_mode", 0)
+
         setContent {
-            EstesioTechTheme {
-                RegisterScreen(
-                    onRegister = { name, crm, uf, recoveryEmail, pass ->
-                        EstesioCloud.register(
-                            crm = crm,
-                            uf = uf,
-                            pass = pass,
-                            name = name,
-                            recoveryEmail = recoveryEmail,
-                            onSuccess = {
-                                Toast.makeText(this, "Conta criada! Faça login.", Toast.LENGTH_LONG).show()
-                                finish()
-                            },
-                            onError = { error ->
-                                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+            // Respeita o tema escolhido
+            EstesioTechTheme(darkTheme = isDarkTheme, colorBlindMode = colorBlindMode) {
+                var isLoading by remember { mutableStateOf(false) }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    RegisterScreen(
+                        isLoading = isLoading,
+                        onRegister = { name, crm, uf, recoveryEmail, pass ->
+                            isLoading = true
+                            EstesioCloud.register(
+                                crm = crm,
+                                uf = uf,
+                                pass = pass,
+                                name = name,
+                                recoveryEmail = recoveryEmail,
+                                onSuccess = {
+                                    isLoading = false
+                                    Toast.makeText(this@RegisterActivity, "Conta criada! Faça login.", Toast.LENGTH_LONG).show()
+                                    finish()
+                                },
+                                onError = { error ->
+                                    isLoading = false
+                                    Toast.makeText(this@RegisterActivity, error, Toast.LENGTH_LONG).show()
+                                }
+                            )
+                        },
+                        onBack = { finish() },
+                        onSettingsClick = {
+                            startActivity(Intent(this@RegisterActivity, SettingsActivity::class.java))
+                        }
+                    )
+
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.7f))
+                                .clickable(enabled = false) {},
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = Color(0xFF00ACC1))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Criando conta...", color = Color.White, fontWeight = FontWeight.Bold)
                             }
-                        )
-                    },
-                    onBack = { finish() }
-                )
+                        }
+                    }
+                }
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+    }
 }
 
-// --- API IBGE (Privada para este arquivo para evitar conflitos) ---
 private suspend fun fetchStatesRegister(): List<String> = withContext(Dispatchers.IO) {
     try {
         val url = URL("https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
-        connection.connectTimeout = 5000 // Timeout de 5s
-
+        connection.connectTimeout = 5000
         if (connection.responseCode == 200) {
             val jsonString = connection.inputStream.bufferedReader().use { it.readText() }
             val jsonArray = JSONArray(jsonString)
@@ -84,20 +124,22 @@ private suspend fun fetchStatesRegister(): List<String> = withContext(Dispatcher
 }
 
 @Composable
-fun RegisterScreen(onRegister: (String, String, String, String, String) -> Unit, onBack: () -> Unit) {
+fun RegisterScreen(
+    isLoading: Boolean,
+    onRegister: (String, String, String, String, String) -> Unit,
+    onBack: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
     var name by remember { mutableStateOf("") }
     var crm by remember { mutableStateOf("") }
     var uf by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-
-    // Estados UF com Fallback Completo
     var ufList by remember { mutableStateOf<List<String>>(emptyList()) }
+
     LaunchedEffect(Unit) {
         val list = fetchStatesRegister()
-        // Lista completa de fallback caso a API falhe
         val fallbackList = listOf("AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO")
         ufList = if (list.isNotEmpty()) list else fallbackList
     }
@@ -108,6 +150,17 @@ fun RegisterScreen(onRegister: (String, String, String, String, String) -> Unit,
             .background(Brush.verticalGradient(colors = listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)))),
         contentAlignment = Alignment.Center
     ) {
+        // --- BOTÃO DE CONFIGURAÇÕES ---
+        IconButton(
+            onClick = onSettingsClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .background(Color.White.copy(alpha = 0.1f), CircleShape)
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = "Acessibilidade", tint = Color.White)
+        }
+
         Card(
             modifier = Modifier
                 .padding(24.dp)
@@ -146,7 +199,6 @@ fun RegisterScreen(onRegister: (String, String, String, String, String) -> Unit,
                     onClick = {
                         if (name.isNotEmpty() && crm.isNotEmpty() && uf.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
                             if (password == confirmPassword) {
-                                isLoading = true
                                 onRegister(name, crm, uf, email, password)
                             } else {
                                 // Erro de senha
@@ -158,8 +210,7 @@ fun RegisterScreen(onRegister: (String, String, String, String, String) -> Unit,
                     shape = RoundedCornerShape(12.dp),
                     enabled = !isLoading
                 ) {
-                    if (isLoading) CircularProgressIndicator(color = Color(0xFF00ACC1), modifier = Modifier.size(24.dp))
-                    else Text("CADASTRAR", fontWeight = FontWeight.Bold)
+                    Text("CADASTRAR", fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -169,7 +220,6 @@ fun RegisterScreen(onRegister: (String, String, String, String, String) -> Unit,
     }
 }
 
-// --- Componentes Reutilizáveis Locais ---
 @Composable
 private fun TechTextField(
     value: String,
@@ -239,10 +289,16 @@ private fun TechDropdownUF(selected: String, items: List<String>, onSelected: (S
     }
 }
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+// --- PREVIEW ---
+@Preview(showBackground = true)
 @Composable
 fun RegisterScreenPreview() {
     EstesioTechTheme {
-        RegisterScreen(onRegister = { _, _, _, _, _ -> }, onBack = {})
+        RegisterScreen(
+            isLoading = false,
+            onRegister = { _, _, _, _, _ -> },
+            onBack = {},
+            onSettingsClick = {}
+        )
     }
 }

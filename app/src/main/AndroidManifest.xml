@@ -2,16 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissões necessárias -->
+    <!-- PERMISSÕES DE INTERNET (CRUCIAIS PARA O FIREBASE) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- PERMISSÕES DE BLUETOOTH (PARA O ESP32) -->
+    <!-- Legado (Android 11 e inferior) -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+
+    <!-- Novo (Android 12+) -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <application
         android:allowBackup="true"
@@ -24,17 +28,7 @@
         android:theme="@style/Theme.EstesioTech"
         tools:targetApi="31">
 
-        <!-- OBRIGATÓRIO PARA COMPARTILHAR PDF -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
-        </provider>
-
+        <!-- TELA DE LOGIN (Início) -->
         <activity
             android:name=".LoginActivity"
             android:exported="true"
@@ -45,13 +39,28 @@
             </intent-filter>
         </activity>
 
+        <!-- OUTRAS TELAS -->
         <activity android:name=".RegisterActivity" />
         <activity android:name=".HomeActivity" />
         <activity android:name=".SelectionActivity" />
-        <activity android:name=".DeviceControlActivity" />
         <activity android:name=".TesteActivity" />
         <activity android:name=".HistoryActivity" />
+        <activity android:name=".DeviceControlActivity" />
+        <activity android:name=".SettingsActivity" />
+
+        <!-- MAIN ACTIVITY (RADAR BLUETOOTH) - ESTAVA FALTANDO -->
         <activity android:name=".MainActivity" />
+
+        <!-- FILE PROVIDER (Para compartilhar o PDF) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
 
     </application>
 

@@ -1,0 +1,52 @@
+<resources>
+    <string name="app_name">EstesioTech</string>
+
+    <!-- Login & Register -->
+    <string name="login_title">Acesso Profissional</string>
+    <string name="login_button">ENTRAR</string>
+    <string name="register_button">CRIAR CONTA</string>
+    <string name="email_hint">E-mail</string>
+    <string name="password_hint">Senha</string>
+    <string name="crm_hint">CRM</string>
+    <string name="remember_me">Lembrar</string>
+    <string name="forgot_password">Esqueci a senha</string>
+    <string name="new_here">Novo por aqui? Criar conta</string>
+    <string name="authenticating">Autenticando...</string>
+
+    <!-- Home -->
+    <string name="welcome">Olá,</string>
+    <string name="device_status_connected">Conectado</string>
+    <string name="device_status_disconnected">Não Conectado</string>
+    <string name="action_connect">CONECTAR</string>
+    <string name="quick_actions">Ações Rápidas</string>
+    <string name="new_exam">Nova Avaliação</string>
+    <string name="history">Histórico</string>
+    <string name="accessibility_hint">Dica: Ajuste cores para Daltonismo nas configurações.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Configurações</string>
+    <string name="appearance_header">Aparência</string>
+    <string name="dark_mode">Modo Escuro</string>
+    <string name="accessibility_header">Acessibilidade</string>
+    <string name="font_size">Tamanho do Texto</string>
+    <string name="color_blind_mode">Modo de Daltonismo</string>
+    <string name="language_header">Idioma</string>
+
+    <!-- Color Blind Modes -->
+    <string name="mode_normal">Normal (Padrão)</string>
+    <string name="mode_protanopia">Protanopia (Sem Vermelho)</string>
+    <string name="mode_deuteranopia">Deuteranopia (Sem Verde)</string>
+    <string name="mode_tritanopia">Tritanopia (Sem Azul)</string>
+    <string name="mode_monochromacy">Monocromacia</string>
+
+    <!-- Dialogs -->
+    <string name="cancel">Cancelar</string>
+    <string name="confirm">Confirmar</string>
+    <string name="start">Iniciar</string>
+    <string name="new_patient_title">Novo Paciente</string>
+    <string name="name_hint">Nome Completo</string>
+    <string name="cpf_hint">CPF (Apenas números)</string>
+    <!-- Menu Device Control -->
+    <string name="menu_home">Início</string>
+    <string name="menu_disconnect">Desconectar</string>
+</resources>
