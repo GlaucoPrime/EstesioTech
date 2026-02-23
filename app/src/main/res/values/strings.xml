@@ -1,52 +1,81 @@
 <resources>
     <string name="app_name">EstesioTech</string>
-
-    <!-- Login & Register -->
     <string name="login_title">Professional Access</string>
     <string name="login_button">LOGIN</string>
     <string name="register_button">CREATE ACCOUNT</string>
     <string name="email_hint">E-mail</string>
     <string name="password_hint">Password</string>
+    <string name="confirm_password_hint">Confirm Password</string>
     <string name="crm_hint">CRM</string>
     <string name="remember_me">Remember me</string>
     <string name="forgot_password">Forgot password?</string>
     <string name="new_here">New here? Create account</string>
     <string name="authenticating">Authenticating...</string>
-
-    <!-- Home -->
     <string name="welcome">Hello,</string>
     <string name="device_status_connected">Connected</string>
     <string name="device_status_disconnected">Not Connected</string>
     <string name="action_connect">CONNECT</string>
+    <string name="action_disconnect">DISCONNECT</string>
     <string name="quick_actions">Quick Actions</string>
     <string name="new_exam">New Exam</string>
     <string name="history">History</string>
-    <string name="accessibility_hint">Tip: Adjust Color Blindness modes in settings.</string>
-
-    <!-- Settings -->
+    <string name="recent_patients">Recent Patients</string>
+    <string name="search_patient">Search Patient</string>
+    <string name="cpf_hint">CPF / ID</string>
     <string name="settings_title">Settings</string>
     <string name="appearance_header">Appearance</string>
     <string name="dark_mode">Dark Mode</string>
+    <string name="light_mode">Light Mode</string>
     <string name="accessibility_header">Accessibility</string>
     <string name="font_size">Text Size</string>
     <string name="color_blind_mode">Color Blindness Mode</string>
     <string name="language_header">Language</string>
-
-    <!-- Color Blind Modes -->
     <string name="mode_normal">Normal</string>
     <string name="mode_protanopia">Protanopia (No Red)</string>
     <string name="mode_deuteranopia">Deuteranopia (No Green)</string>
     <string name="mode_tritanopia">Tritanopia (No Blue)</string>
-    <string name="mode_monochromacy">Monochromacy</string>
-
-    <!-- Dialogs -->
+    <string name="mode_monochromacy">Monochromacy (Gray)</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="start">Start</string>
     <string name="new_patient_title">New Patient</string>
     <string name="name_hint">Full Name</string>
-    <string name="cpf_hint">CPF (Numbers only)</string>
-    <!-- Menu Device Control -->
+    <string name="age_hint">Age</string>
     <string name="menu_home">Home</string>
     <string name="menu_disconnect">Disconnect</string>
+
+    <!-- NOVOS: RADAR -->
+    <string name="radar_title">BLUETOOTH RADAR</string>
+    <string name="radar_searching">Searching...</string>
+    <string name="radar_tap_to_start">Tap to start</string>
+    <string name="radar_device_name">Device</string>
+
+    <!-- NOVOS: SELEÇÃO E TESTE -->
+    <string name="evaluation_title">Sensitivity Evaluation</string>
+    <string name="select_area">Select Area</string>
+    <string name="right_hand">Right Hand</string>
+    <string name="left_hand">Left Hand</string>
+    <string name="right_foot">Right Foot</string>
+    <string name="left_foot">Left Foot</string>
+    <string name="deformities_question">Deformities or Ulcers?</string>
+    <string name="deformities_desc">Check if you observe claw toes or wounds. (Grade 2)</string>
+    <string name="finish_evaluation">FINISH EVALUATION</string>
+    <string name="complete_all_tests">Complete all 4 tests</string>
+    <string name="redo_test">Redo Test?</string>
+    <string name="redo_desc">Previous data will be replaced.</string>
+    <string name="redo_btn">Redo</string>
+    <string name="data_saved">Data Saved</string>
+    <string name="download_pdf">Download PDF</string>
+    <string name="share_pdf">Share PDF</string>
+    <string name="back_home">Back to Home</string>
+
+    <!-- NOVOS: HISTÓRICO -->
+    <string name="history_title">Patient History</string>
+    <string name="history_empty">No history found.</string>
+    <string name="history_sessions">Performed Sessions:</string>
+    <string name="history_delete_title">Delete Session?</string>
+    <string name="history_delete_desc">Are you sure you want to delete this record? This cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="download">Download</string>
+    <string name="share">Share</string>
 </resources>

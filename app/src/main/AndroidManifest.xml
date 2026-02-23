@@ -30,7 +30,7 @@
 
         <!-- TELA DE LOGIN (Início) -->
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.screens.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.EstesioTech">
             <intent-filter>
@@ -40,16 +40,16 @@
         </activity>
 
         <!-- OUTRAS TELAS -->
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".HomeActivity" />
-        <activity android:name=".SelectionActivity" />
-        <activity android:name=".TesteActivity" />
+        <activity android:name=".ui.screens.RegisterActivity" />
+        <activity android:name=".ui.screens.HomeActivity" />
+        <activity android:name=".ui.screens.SelectionActivity" />
+        <activity android:name=".ui.screens.TesteActivity" />
         <activity android:name=".HistoryActivity" />
-        <activity android:name=".DeviceControlActivity" />
-        <activity android:name=".SettingsActivity" />
+        <activity android:name=".ui.screens.DeviceControlActivity" />
+        <activity android:name=".ui.screens.SettingsActivity" />
 
         <!-- MAIN ACTIVITY (RADAR BLUETOOTH) - ESTAVA FALTANDO -->
-        <activity android:name=".MainActivity" />
+        <activity android:name=".ui.screens.MainActivity" />
 
         <!-- FILE PROVIDER (Para compartilhar o PDF) -->
         <provider

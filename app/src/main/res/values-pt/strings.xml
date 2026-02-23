@@ -1,52 +1,81 @@
 <resources>
     <string name="app_name">EstesioTech</string>
-
-    <!-- Login & Register -->
     <string name="login_title">Acesso Profissional</string>
     <string name="login_button">ENTRAR</string>
     <string name="register_button">CRIAR CONTA</string>
     <string name="email_hint">E-mail</string>
     <string name="password_hint">Senha</string>
+    <string name="confirm_password_hint">Confirmar Senha</string>
     <string name="crm_hint">CRM</string>
     <string name="remember_me">Lembrar</string>
     <string name="forgot_password">Esqueci a senha</string>
     <string name="new_here">Novo por aqui? Criar conta</string>
     <string name="authenticating">Autenticando...</string>
-
-    <!-- Home -->
     <string name="welcome">Olá,</string>
     <string name="device_status_connected">Conectado</string>
     <string name="device_status_disconnected">Não Conectado</string>
     <string name="action_connect">CONECTAR</string>
+    <string name="action_disconnect">DESCONECTAR</string>
     <string name="quick_actions">Ações Rápidas</string>
     <string name="new_exam">Nova Avaliação</string>
     <string name="history">Histórico</string>
-    <string name="accessibility_hint">Dica: Ajuste cores para Daltonismo nas configurações.</string>
-
-    <!-- Settings -->
+    <string name="recent_patients">Últimos Atendimentos</string>
+    <string name="search_patient">Buscar Paciente</string>
+    <string name="cpf_hint">CPF / Identificador</string>
     <string name="settings_title">Configurações</string>
     <string name="appearance_header">Aparência</string>
     <string name="dark_mode">Modo Escuro</string>
+    <string name="light_mode">Modo Claro</string>
     <string name="accessibility_header">Acessibilidade</string>
     <string name="font_size">Tamanho do Texto</string>
     <string name="color_blind_mode">Modo de Daltonismo</string>
     <string name="language_header">Idioma</string>
-
-    <!-- Color Blind Modes -->
     <string name="mode_normal">Normal (Padrão)</string>
     <string name="mode_protanopia">Protanopia (Sem Vermelho)</string>
     <string name="mode_deuteranopia">Deuteranopia (Sem Verde)</string>
     <string name="mode_tritanopia">Tritanopia (Sem Azul)</string>
-    <string name="mode_monochromacy">Monocromacia</string>
-
-    <!-- Dialogs -->
+    <string name="mode_monochromacy">Monocromacia (Cinza)</string>
     <string name="cancel">Cancelar</string>
     <string name="confirm">Confirmar</string>
     <string name="start">Iniciar</string>
     <string name="new_patient_title">Novo Paciente</string>
     <string name="name_hint">Nome Completo</string>
-    <string name="cpf_hint">CPF (Apenas números)</string>
-    <!-- Menu Device Control -->
+    <string name="age_hint">Idade</string>
     <string name="menu_home">Início</string>
     <string name="menu_disconnect">Desconectar</string>
+
+    <!-- NOVOS: RADAR -->
+    <string name="radar_title">RADAR BLUETOOTH</string>
+    <string name="radar_searching">Buscando...</string>
+    <string name="radar_tap_to_start">Toque para iniciar</string>
+    <string name="radar_device_name">Dispositivo</string>
+
+    <!-- NOVOS: SELEÇÃO E TESTE -->
+    <string name="evaluation_title">Avaliação Sensitiva</string>
+    <string name="select_area">Selecione a área</string>
+    <string name="right_hand">Mão Direita</string>
+    <string name="left_hand">Mão Esquerda</string>
+    <string name="right_foot">Pé Direito</string>
+    <string name="left_foot">Pé Esquerdo</string>
+    <string name="deformities_question">Deformidades ou Úlceras?</string>
+    <string name="deformities_desc">Marque se observar garras ou feridas. (Grau 2)</string>
+    <string name="finish_evaluation">FINALIZAR AVALIAÇÃO</string>
+    <string name="complete_all_tests">Complete os 4 testes</string>
+    <string name="redo_test">Refazer Teste?</string>
+    <string name="redo_desc">Dados anteriores serão substituídos.</string>
+    <string name="redo_btn">Refazer</string>
+    <string name="data_saved">Dados Salvos</string>
+    <string name="download_pdf">Baixar PDF</string>
+    <string name="share_pdf">Compartir PDF</string>
+    <string name="back_home">Voltar para Home</string>
+
+    <!-- NOVOS: HISTÓRICO -->
+    <string name="history_title">Histórico de Pacientes</string>
+    <string name="history_empty">Nenhum histórico encontrado.</string>
+    <string name="history_sessions">Sessões Realizadas:</string>
+    <string name="history_delete_title">Excluir Sessão?</string>
+    <string name="history_delete_desc">Tem certeza que deseja apagar este registro? Esta ação não pode ser desfeita.</string>
+    <string name="delete">Excluir</string>
+    <string name="download">Baixar</string>
+    <string name="share">Enviar</string>
 </resources>
