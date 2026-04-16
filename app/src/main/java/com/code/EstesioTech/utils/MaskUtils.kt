@@ -5,38 +5,46 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 
+/**
+ * Aplica mascara de CPF (XXX.XXX.XXX-XX) visualmente no TextField.
+ * O valor interno permanece apenas com digitos (LGPD: sem formatacao interna).
+ *
+ * Uso:
+ *   OutlinedTextField(
+ *     value = cpf,  // "12345678901" (apenas digitos)
+ *     visualTransformation = CpfVisualTransformation()
+ *   )
+ */
 class CpfVisualTransformation : VisualTransformation {
+
     override fun filter(text: AnnotatedString): TransformedText {
-        // Limita visualmente a 11 caracteres (tamanho real do CPF sem formatação)
+        // Limita a 11 digitos (tamanho maximo do CPF sem formatacao)
         val trimmed = if (text.text.length >= 11) text.text.substring(0..10) else text.text
-        var out = ""
-
-        // Adiciona os pontos e o traço nas posições corretas
-        for (i in trimmed.indices) {
-            out += trimmed[i]
-            if (i == 2 || i == 5) out += "."
-            if (i == 8) out += "-"
-        }
-
-        // Calcula a posição do cursor (para o cursor não se perder quando os pontos são inseridos)
-        val cpfOffsetTranslator = object : OffsetMapping {
-            override fun originalToTransformed(offset: Int): Int {
-                if (offset <= 2) return offset
-                if (offset <= 5) return offset + 1
-                if (offset <= 8) return offset + 2
-                if (offset <= 11) return offset + 3
-                return 14
-            }
-
-            override fun transformedToOriginal(offset: Int): Int {
-                if (offset <= 3) return offset
-                if (offset <= 7) return offset - 1
-                if (offset <= 11) return offset - 2
-                if (offset <= 14) return offset - 3
-                return 11
+        val out = buildString {
+            for (i in trimmed.indices) {
+                append(trimmed[i])
+                if (i == 2 || i == 5) append(".")
+                if (i == 8) append("-")
             }
         }
 
-        return TransformedText(AnnotatedString(out), cpfOffsetTranslator)
+        val offsetTranslator = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int = when {
+                offset <= 2  -> offset
+                offset <= 5  -> offset + 1
+                offset <= 8  -> offset + 2
+                offset <= 11 -> offset + 3
+                else         -> 14
+            }
+            override fun transformedToOriginal(offset: Int): Int = when {
+                offset <= 3  -> offset
+                offset <= 7  -> offset - 1
+                offset <= 11 -> offset - 2
+                offset <= 14 -> offset - 3
+                else         -> 11
+            }
+        }
+
+        return TransformedText(AnnotatedString(out), offsetTranslator)
     }
 }

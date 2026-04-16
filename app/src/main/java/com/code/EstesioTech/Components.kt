@@ -1,8 +1,10 @@
 package com.code.EstesioTech
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -10,15 +12,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
+// TechTextField - campo de texto padrao do app
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TechTextField(
@@ -26,50 +33,48 @@ fun TechTextField(
     onValueChange: (String) -> Unit,
     label: String,
     icon: ImageVector,
+    modifier: Modifier = Modifier.fillMaxWidth(),
     isPassword: Boolean = false,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    maxLength: Int = Int.MAX_VALUE
 ) {
-    val techColor = Color(0xFF00ACC1)
-    val glassColor = Color.Black.copy(alpha = 0.2f)
-
+    val colors = MaterialTheme.colorScheme
     OutlinedTextField(
         value = value,
         onValueChange = { newValue ->
-            // TRAVA DE SEGURANÇA: Se for campo numérico, só aceita dígitos
-            if (keyboardType == KeyboardType.Number) {
-                if (newValue.all { it.isDigit() }) {
-                    onValueChange(newValue)
-                }
-            } else {
-                onValueChange(newValue)
+            val filtered = when (keyboardType) {
+                KeyboardType.Number, KeyboardType.Phone -> newValue.filter { it.isDigit() }
+                else -> newValue
             }
+            if (filtered.length <= maxLength) onValueChange(filtered)
         },
-        label = { Text(label) },
-        leadingIcon = { Icon(icon, contentDescription = null, tint = techColor) },
+        label = { Text(label, color = colors.onSurfaceVariant) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = colors.primary) },
         visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = techColor,
-            unfocusedBorderColor = Color.Gray,
-            focusedLabelColor = techColor,
-            unfocusedLabelColor = Color.Gray,
-            focusedTextColor = Color.White,
-            unfocusedTextColor = Color.White,
-            cursorColor = techColor,
-            focusedContainerColor = glassColor,
-            unfocusedContainerColor = glassColor
-        ),
-        singleLine = true
+            focusedBorderColor = colors.primary,
+            unfocusedBorderColor = colors.outline.copy(alpha = 0.5f),
+            focusedLabelColor = colors.primary,
+            focusedTextColor = colors.onSurface,
+            unfocusedTextColor = colors.onSurface,
+            cursorColor = colors.primary,
+            focusedContainerColor = colors.surface,
+            unfocusedContainerColor = colors.surface
+        )
     )
 }
 
+// TechStateDropdown - dropdown de UF com IBGE e animacao
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TechStateDropdown(
     selectedState: String,
-    onStateSelected: (String) -> Unit
+    onStateSelected: (String) -> Unit,
+    modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     var expanded by remember { mutableStateOf(false) }
     var statesList by remember { mutableStateOf<List<IbgeState>>(emptyList()) }
@@ -81,60 +86,66 @@ fun TechStateDropdown(
         isLoading = false
     }
 
-    val techColor = Color(0xFF00ACC1)
-    val glassColor = Color.Black.copy(alpha = 0.2f)
-    val rotationState by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "arrow")
+    val colors = MaterialTheme.colorScheme
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "arrow"
+    )
 
-    Box(modifier = Modifier.fillMaxWidth()) {
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (!isLoading) expanded = !expanded }, modifier = modifier) {
         OutlinedTextField(
-            value = if (selectedState.isEmpty()) "" else selectedState,
+            value = selectedState,
             onValueChange = {},
             readOnly = true,
-            label = { Text("UF") },
-            placeholder = { Text("UF") },
+            label = { Text("UF", color = colors.onSurfaceVariant) },
             trailingIcon = {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = techColor, strokeWidth = 2.dp)
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Expandir",
-                        tint = if (expanded) techColor else Color.Gray,
-                        modifier = Modifier.rotate(rotationState)
-                    )
-                }
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = colors.primary, strokeWidth = 2.dp)
+                else Icon(Icons.Default.ArrowDropDown, null, tint = if (expanded) colors.primary else colors.onSurfaceVariant, modifier = Modifier.rotate(arrowRotation))
             },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = techColor,
-                unfocusedBorderColor = Color.Gray,
-                focusedLabelColor = techColor,
-                unfocusedLabelColor = Color.Gray,
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = glassColor,
-                unfocusedContainerColor = glassColor
+                focusedBorderColor = colors.primary,
+                unfocusedBorderColor = colors.outline.copy(alpha = 0.5f),
+                focusedTextColor = colors.onSurface,
+                unfocusedTextColor = colors.onSurface,
+                focusedContainerColor = colors.surface,
+                unfocusedContainerColor = colors.surface
             )
         )
-
-        Box(modifier = Modifier.matchParentSize().clickable { if (!isLoading) expanded = !expanded })
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(Color(0xFF1A2634)).fillMaxWidth(0.9f).heightIn(max = 250.dp)
-        ) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(colors.surface).heightIn(max = 280.dp)) {
             statesList.forEach { state ->
                 DropdownMenuItem(
-                    text = { Text("${state.sigla} - ${state.nome}", color = Color.White) },
-                    onClick = {
-                        onStateSelected(state.sigla)
-                        expanded = false
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(state.sigla, color = colors.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.width(36.dp))
+                            Text(state.nome, color = colors.onSurface, fontSize = 13.sp)
+                        }
                     },
-                    colors = MenuDefaults.itemColors(textColor = Color.White, leadingIconColor = techColor)
+                    onClick = { onStateSelected(state.sigla); expanded = false },
+                    modifier = if (state.sigla == selectedState) Modifier.background(colors.primaryContainer.copy(alpha = 0.3f)) else Modifier
                 )
             }
         }
+    }
+}
+
+// RiskBadge - badge colorido de nivel de risco
+@Composable
+fun RiskBadge(riskLevel: Int, modifier: Modifier = Modifier) {
+    val (label, bgColor) = when (riskLevel) {
+        0 -> "Sem Risco" to Color(0xFF1B5E20)
+        1 -> "Risco Mod." to Color(0xFFE65100)
+        else -> "Alto Risco" to Color(0xFFB71C1C)
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bgColor.copy(alpha = 0.15f))
+            .border(1.dp, bgColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(text = label, color = bgColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
